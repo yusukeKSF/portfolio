@@ -15,6 +15,11 @@ from app.routes.camera_ocr_router import router as camera_router
 # ✅ main.py の修正
 from app.routes.camera_ocr_router import process_ocr_and_send
 
+# UI 実装ステップ 
+from fastapi.templating import Jinja2Templates
+from fastapi.requests import Request
+from fastapi.staticfiles import StaticFiles
+
 
 
 app = FastAPI()
@@ -30,6 +35,10 @@ app.include_router(camera_ocr_router.router, prefix="/camera")
 app.include_router(gpt.router, prefix="/text")
 # app.include_router(upload_and_process_router.router)
 app.include_router(camera_router)
+
+# UI 実装ステップ 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+templates = Jinja2Templates(directory="app/templates")
 
 
 class GPTRequest(BaseModel):
@@ -69,6 +78,11 @@ def write_endpoint(req: WriteRequest):
 async def upload_and_process(file: UploadFile = File(...)):
     # UploadFile をそのまま camera_ocr_router に渡して処理
     return await process_ocr_and_send(file)
+
+# UI 実装ステップ 
+@app.get("/")
+def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # @app.post("/upload")
 # async def upload_and_process(file: UploadFile = File(...)):

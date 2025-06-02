@@ -1,0 +1,36 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>仕訳取引画像アップロード</title>
+</head>
+<body>
+    <h1>📤 画像アップロードで仕訳処理</h1>
+
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="image-file" name="file" accept="image/*" required />
+        <button type="submit">アップロードして処理</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('image-file');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const res = await fetch('/convert_and_write', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        });
+    </script>
+</body>
+</html>
