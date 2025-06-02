@@ -15,3 +15,4 @@ vision_test_file/
 source/
 start_git.txt
 .DS_Store
+app/service/journal_entry.py
