@@ -1,0 +1,45 @@
+{
+  "type": "sales",
+  "date": "",
+  "summary": "田中商店への商品売上",
+  "supplier": "",
+  "customer": "田中商店",
+  "asset_name": "",
+  "acquisition_date": "",
+  "calc_closing_date": "",
+  "target_year": "",
+  "closing_date": "",
+  "method": "",
+  "amount": 0,
+  "life": 0,
+  "current_volume": 0,
+  "total_volume": 0,
+  "debit_entries": [
+    {
+      "account": "現金",
+      "amount": 100000
+    },
+    {
+      "account": "受取手形",
+      "amount": 100000
+    }
+  ],
+  "credit_entries": [
+    {
+      "account": "売上",
+      "amount": 200000
+    }
+  ],
+  "entries": [
+    {
+      "debit": "現金",
+      "credit": "売上",
+      "amount": 100000
+    },
+    {
+      "debit": "受取手形",
+      "credit": "売上",
+      "amount": 100000
+    }
+  ]
+}

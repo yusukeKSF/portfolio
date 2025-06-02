@@ -1,0 +1,87 @@
+
+以下の日本語文はOCRで抽出された会計取引の記録です。
+この文書から取引内容を読み取り、JSON形式で会計仕訳を出力してください。
+
+# 出力ルール：
+- 出力は JSON のみ。説明や注釈は含めないでください。
+- 金額（amount）は半角数値、カンマは使用しないこと。
+- `entries` の配列に、借方（debit）と貸方（credit）を分けて記述してください。
+- 減価償却費などの金額はシステムが後で計算するため、`amount: 0` で構いません。
+
+# 取引タイプ判定：
+以下の type のいずれかを判定し、出力に含めてください。
+
+- `"purchase"`：仕入取引（支払い方法により「現金」または「買掛金」）
+- `"sales"`：売上取引（入金方法により「現金」または「売掛金」）
+- `"supplies_purchase"`：消耗品など即時費用処理の購入
+- `"asset_purchase"`：備品などの固定資産購入（減価償却対象）
+- `"depreciation"`：減価償却（固定資産の年次償却）
+- `"unknown"`：該当なしまたは不明
+
+# 補足ルール：
+
+- 「〇〇を仕入れた」→ type: `"purchase"`、debit: `"仕入"`
+- 「〇〇を購入した」→ contextに応じて `"supplies_purchase"` か `"asset_purchase"` に分類
+- 「掛け払い」「未払い」等があれば：
+- purchase系は credit: `"買掛金"`（または `"未払金"`）
+- sales系は credit: `"売掛金"`
+- 支払・受取方法の記載がない場合、現金処理とする
+- 減価償却時は debit: `"減価償却費"`, credit: `"減価償却累計額"`
+- 売上取引（type: "sales"）では、「売上」は必ず `credit_entries` に含めてください
+- 金額が20万円を超える`"supplies_purchase"`の場合は、`"備品"`に分類する
+
+---
+
+# JSON出力形式（全タイプ共通）：
+
+{
+  "type": "purchase"｜"sales"｜"depreciation"｜"supplies_purchase"｜"asset_purchase"｜"unknown",
+  "date": "YYYY-MM-DD",
+  "summary": "取引の概要（簡潔に）",
+  "supplier": "仕入先名（任意）",
+  "customer": "顧客名（任意）",
+  "asset_name": "資産名（必要な場合）",
+  "acquisition_date": "取得日（固定資産用）",
+  "calc_closing_date": "初年度決算日（減価償却用）",
+  "target_year": "償却対象年度末（減価償却用）",
+  "closing_date": "target_yearと同じ値を設定（必須）",
+  "method": "償却方法（例：定額法、200%定率法、級数法、生産高比例法）",
+  "amount": 資産原価（数値）,
+  "life": 耐用年数（整数）,
+  "current_volume": 生産量（生産高比例法時のみ）,
+  "total_volume": 総生産可能量（同上）,
+  "debit_entries": [ {"account": "勘定科目", "amount": 金額} ],
+  "credit_entries": [ {"account": "勘定科目", "amount": 金額} ]
+}
+
+---
+
+# 減価償却取引（type: "depreciation"）に関する特別指示：
+
+- `summary`: 例「機械の減価償却」など簡潔に記述
+- `asset_name`: 対象資産（例："機械", "車両運搬具"）
+- `acquisition_date`: 資産の取得日（YYYY-MM-DD）
+- `calc_closing_date`: 初年度の決算日（取得年度末）
+- `target_year`: 今回取得したい償却年度末（例：2025-03-31）
+- `closing_date`: `target_year` と同一に設定すること
+- `method`: 償却方法（"定率法" → "200%定率法" に変換）
+- `amount`: 取得価格（半角数値）
+- `life`: 耐用年数（整数）
+- `entries`: 金額は `0` で良い（後でシステム計算）
+
+## 生産高比例法の場合：
+- `method`: "生産高比例法"
+- `current_volume`: 当期生産量（整数）
+- `total_volume`: 総生産可能量（整数）
+- `amount`: 取得原価
+
+注意事項：
+- `calc_closing_date` は資産を取得した初年度の決算日でフォームに入力する決算日です（通常は取得日の年 + 会計年度末）。
+- `target_year` はテーブルから減価償却費を取得したい年度の決算日です（例：2025-03-31）。
+---
+
+以下が対象の取引文です：
+
+会計期間は2024年4月1日から2025年3月31日である。
+当店は、田中商店に商品20万円を売り上げ、
+代金の半分は現金で受け取り、もう半分は受取手形で受け取った。

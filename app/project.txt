@@ -1,0 +1,977 @@
+1. 目的
+- Python で自動仕訳プログラムを作成しています。デプロイを目標にしており現在最終調整に入っております。Webアプリとして動作することを目指しており、UXの対応も視野に入れています。
+
+2. 
+
+
+### gpt_journal_translation
+
+
+### send_camera_image.py
+
+import requests
+
+# 📸 送信したい画像ファイルのパス
+image_path = "images/test5.png"  # カメラで撮影した画像ファイルを指定
+
+# 🎯 FastAPIサーバーのURL（ローカル or デプロイ先に応じて修正）
+url = "http://localhost:8000/camera/convert_and_write"
+
+# 📤 画像をmultipart/form-dataで送信
+with open(image_path, "rb") as f:
+    files = {"file": (image_path, f, "image/jpeg")}
+    response = requests.post(url, files=files)
+
+# 🖨 結果を表示
+print("📬 サーバー応答:", response.status_code)
+print(response.json())
+
+
+### app/main.py
+
+from fastapi import FastAPI, UploadFile, File
+from fastapi import Body
+from app.service.ocr import extract_text_from_image
+from app.service.gpt import generate_journal_entries
+from app.service.sheets import write_entries_to_sheet
+from app.schemas import GPTRequest, WriteRequest
+from app.handlers import sales, purchase, depreciation, asset_purchase, supplies_purchase
+from pydantic import BaseModel
+from app.service import gpt
+from app.routes import camera_ocr_router
+
+
+app = FastAPI()
+
+# ルーター登録
+app.include_router(sales.router, prefix="/journal")
+app.include_router(purchase.router, prefix="/journal")
+app.include_router(depreciation.router, prefix="/journal")
+app.include_router(asset_purchase.router, prefix="/journal")
+app.include_router(supplies_purchase.router, prefix="/journal")
+app.include_router(gpt.router)
+app.include_router(camera_ocr_router.router, prefix="/camera")
+
+
+
+class GPTRequest(BaseModel):
+    text: str
+    
+class WriteRequest(BaseModel):
+    date: str
+    summary: str
+    entries: list[dict]
+
+@app.get("/")
+def root():
+    return {"message": "FastAPI is running."}
+
+@app.post("/ocr")
+async def ocr_endpoint(file: UploadFile = File(...)):
+    contents = await file.read()
+    file_path = f"/tmp/{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    text = extract_text_from_image(file_path)
+    return {"text": text}
+
+@app.post("/generate")
+def generate_endpoint(req: GPTRequest):
+    journal = generate_journal_entries(req.text)
+    return journal
+
+@app.post("/write")
+def write_endpoint(req: WriteRequest):
+    entries = [entry.dict() for entry in req.entries]
+    write_entries_to_sheet(entries, req.date, req.summary)
+    return {"status": "success", "message": "スプレッドシートに書き込みました"}
+
+# /generate と /write を1回のPOSTで完了するため統合
+@app.post("/convert_and_write")
+def convert_and_write(req: GPTRequest):
+    journal = generate_journal_entries(req.text)
+    entries = [entry for entry in journal["entries"]]
+    write_req = WriteRequest(
+        date=journal["date"],
+        summary=journal["summary"],
+        entries=entries
+    )
+    write_entries_to_sheet(
+        entries=write_req.entries,
+        date=write_req.date,
+        summary=write_req.summary
+    )
+    return {"status": "success", "message": "スプレッドシートに書き込みました"}
+
+
+
+###app/schemas.py
+
+from pydantic import BaseModel
+from typing import List, Optional, Literal
+
+
+
+class Entry(BaseModel):
+    debit: str
+    credit: str
+    amount: int
+
+class GPTRequest(BaseModel):
+    text: str
+
+class WriteRequest(BaseModel):
+    date: str
+    summary: str
+    entries: List[Entry]
+
+
+class SalesRequest(BaseModel):
+    type: Literal["sales"]
+    date: str
+    summary: str
+    customer: str
+    amount: float
+    entries: List[Entry]
+
+class PurchaseRequest(BaseModel):
+    type: Literal["purchase"]
+    date: str
+    summary: str
+    supplier: str
+    amount: float
+    entries: List[Entry]
+
+class SuppliesPurchaseRequest(BaseModel):
+    type: Literal["supplies_purchase"]
+    date: str
+    summary: str
+    supplier: Optional[str]
+    amount: float
+    entries: List[Entry]
+
+class AssetPurchaseRequest(BaseModel):
+    type: Literal["asset_purchase"]
+    date: str
+    summary: str
+    asset_name: str
+    amount: float
+    entries: List[Entry]
+
+class DepreciationRequest(BaseModel):
+    type: Literal["depreciation"]
+    date: str
+    summary: str
+    asset_name: str
+    acquisition_date: str
+    closing_date: str
+    calc_closing_date: Optional[str] = None
+    method: str
+    amount: float
+    life: int
+    target_year: Optional[str] = None
+    current_volume: Optional[float] = None
+    total_volume: Optional[float] = None
+    entries: List[Entry]
+
+
+### app/logger.py
+# ログを作成し追跡可能にしておく
+# gpt.py で４箇所でログ記入
+
+import os
+from datetime import datetime
+from pathlib import Path
+
+LOG_DIR = Path("logs")
+LOG_DIR.mkdir(exist_ok=True)
+
+def save_log(content: str, prefix: str = "log") -> str:
+    """
+    任意のテキストを timestamp 付きのファイルとして保存する。
+    Returns: 保存されたファイルパス（str）
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = LOG_DIR / f"{prefix}_{timestamp}.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"📄 ログ保存: {filename}")
+    return str(filename)
+
+def save_json(data: dict, prefix: str = "gpt_output") -> str:
+    """
+    dict を JSON形式でファイル保存する。
+    """
+    import json
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = LOG_DIR / f"{prefix}_{timestamp}.json"
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print(f"📄 JSONログ保存: {filename}")
+    return str(filename)
+
+
+### app/utils.py
+# 日付補完　 会計期間や決算日の補完が行われる
+
+import re
+from datetime import datetime
+
+def extract_fiscal_mmdd_period(text: str) -> tuple[str | None, str | None]:
+    """
+    例：「4月1日から3月31日までの会計年度」のような文から、
+    開始・終了日（MM-DD形式）を抽出。
+    Returns: (start_mmdd, end_mmdd)
+    """
+    pattern = r"(\d{1,2})月(\d{1,2})日から(\d{1,2})月(\d{1,2})日"
+    match = re.search(pattern, text)
+    if match:
+        start = f"{int(match.group(1)):02d}-{int(match.group(2)):02d}"
+        end = f"{int(match.group(3)):02d}-{int(match.group(4)):02d}"
+        return start, end
+    return None, None
+
+def derive_calc_closing_date(acquisition_date: str, fiscal_end_mmdd: str) -> str | None:
+    """
+    資産取得日と会計期間の終了MM-DDから、
+    初年度の決算日（YYYY-MM-DD）を導出。
+    - 会計年度が1月開始以外の場合、決算年は「期首の年 + 1」
+    """
+    try:
+        acq_date = datetime.strptime(acquisition_date, "%Y-%m-%d")
+        fiscal_month, fiscal_day = map(int, fiscal_end_mmdd.split("-"))
+
+        # 会計期間の終了日が 1月〜12月以外 → 翌年を決算年とする
+        # 例：2025-04-01 取得 → 決算日 2026-03-31
+        if acq_date.month > fiscal_month or (acq_date.month == fiscal_month and acq_date.day > fiscal_day):
+            closing_year = acq_date.year + 1
+        else:
+            closing_year = acq_date.year
+
+        return f"{closing_year}-{fiscal_month:02d}-{fiscal_day:02d}"
+
+    except Exception as e:
+        print(f"❌ calc_closing_date 推定失敗: {e}")
+        return None
+
+
+### app/handlers/asset_purchase.py
+
+from fastapi import APIRouter
+from app.schemas import AssetPurchaseRequest
+
+router = APIRouter()
+
+@router.post("/asset_purchase")
+def handle_asset(data: AssetPurchaseRequest):
+    print("\n✅ 固定資産購入取引リクエスト受信")
+    print("📅 日付:", data.date)
+    print("🖋 資産名:", data.asset_name)
+    print("📝 概要:", data.summary)
+    for entry in data.entries:
+        print(f"  借方: {entry.debit}, 貸方: {entry.credit}, 金額: {entry.amount}")
+    return {"status": "success", "message": "asset_purchase 取引を正常に受信しました。"}
+
+
+### app/handlers/depreciation.py
+
+from fastapi import APIRouter
+from app.schemas import DepreciationRequest
+
+router = APIRouter()
+
+@router.post("/depreciation")
+def handle_depreciation(data: DepreciationRequest):
+    print("\n✅ 減価償却リクエスト受信")
+    print("📅 日付:", data.target_year)
+    print("📝 概要:", data.summary)
+    print("🧮 償却方法:", data.method)
+    print("📦 取得額:", data.amount)
+    print("📆 取得日:", data.acquisition_date)
+    print("📆 決算日:", data.closing_date)
+    if data.calc_closing_date:
+        print("📆 初年度決算日:", data.calc_closing_date)
+    print("🧾 耐用年数:", data.life)
+    if data.target_year:
+        print("🔍 対象年度:", data.target_year)
+
+    for entry in data.entries:
+        print(f"  借方: {entry.debit}, 貸方: {entry.credit}, 金額: {entry.amount}")
+    total = sum(e.amount for e in data.entries)
+    print(f"💰 合計減価償却費（エントリ合計）: {total}")
+    return {"status": "success", "message": "depreciation 取引を正常に受信しました。"}
+
+
+
+### app/handlers/purchase.py
+
+from fastapi import APIRouter
+from app.schemas import PurchaseRequest
+
+router = APIRouter()
+
+@router.post("/purchase")
+def handle_purchase(data: PurchaseRequest):
+    print("\n✅ 仕入取引リクエスト受信")
+    print("📅 日付:", data.date)
+    print("🏢 仕入先:", data.supplier)
+    print("📝 概要:", data.summary)
+    for entry in data.entries:
+        print(f"  借方: {entry.debit}, 貸方: {entry.credit}, 金額: {entry.amount}")
+    return {"status": "success", "message": "purchase 取引を正常に受信しました。"}
+
+
+### app/handlers/sales.py
+
+from fastapi import APIRouter
+from app.schemas import SalesRequest
+
+router = APIRouter()
+
+@router.post("/sales")    # @app.post → @router.post  元々あった /journal も削除
+def handle_sales(data: SalesRequest):
+    print("\n✅ 売上取引リクエスト受信")
+    print("📅 日付:", data.date)
+    print("🧾 顧客名:", data.customer)
+    print("📝 概要:", data.summary)
+    for entry in data.entries:
+        print(f"  借方: {entry.debit}, 貸方: {entry.credit}, 金額: {entry.amount}")
+    return {"status": "success", "message": "sales 取引を正常に受信しました。"}
+
+
+### app/handlers/supplies_purchase.py
+
+from fastapi import APIRouter
+from app.schemas import SuppliesPurchaseRequest
+                                        # ↑
+router = APIRouter()                    # ここの名前を同じにする。
+                        # ↓ ルートURL     #
+@router.post("/supplies_purchase")      # ↓
+def handle_supplies(data: SuppliesPurchaseRequest):
+    print("\n✅ 消耗品購入取引リクエスト受信")
+    print("📅 日付:", data.date)
+    print("📦 概要:", data.summary)
+    for entry in data.entries:
+        print(f"  借方: {entry.debit}, 貸方: {entry.credit}, 金額: {entry.amount}")
+    return {"status": "success", "message": "supplies_purchase 取引を正常に受信しました。"}
+
+
+
+#  app/routes/camera_ocr_router.py
+
+from fastapi import APIRouter, UploadFile, File
+import shutil
+import tempfile
+from app.service.ocr import extract_text_from_image
+from app.service.gpt import generate_journal_entries, process_gpt_and_enrich
+from app.service.sheets import write_entries_to_sheet
+
+
+
+
+router = APIRouter()
+
+
+# ✅【追加】画像ファイル受信 → OCR → GPT → スプレッドシート書き込み処理
+@router.post("/convert_and_write")
+async def process_ocr_and_send(file: UploadFile = File(...)):
+    # ✅ 一時ファイルに保存
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+        shutil.copyfileobj(file.file, temp_file)
+        temp_file_path = temp_file.name
+
+    # ✅ OCRテキスト抽出
+    text = extract_text_from_image(temp_file_path)
+
+    # ✅ GPTで仕訳生成
+    gpt_data = generate_journal_entries(text)
+
+    # ✅ 減価償却補完など enrich 処理
+    enriched = process_gpt_and_enrich(gpt_data, text)
+
+    # ✅ Google Sheets 書き込み
+    write_entries_to_sheet(
+        entries=enriched["entries"],
+        date=enriched["date"],
+        summary=enriched["summary"]
+    )
+
+    return {"status": "success", "message": "撮影画像から仕訳を登録しました"}
+
+
+import numpy as np
+from app.service.ocr import extract_text_from_frame
+from app.routes.camera_ocr_router import generate_journal_entries, process_gpt_and_enrich
+from app.service.sheets import write_entries_to_sheet
+
+### 処理を1つの関数にカプセル化
+# この関数で 画像からOCR出力　→ GPTに送信 → 減価償却の金額の補完 → Google Sheets への書き込み → ログ保存
+def process_ocr_and_send(frame: np.ndarray):
+    # OCR処理
+    ocr_text = extract_text_from_frame(frame)
+    print("📝 OCR抽出テキスト:", ocr_text)
+
+    # GPT処理
+    journal = generate_journal_entries(ocr_text)
+
+    # enrich（減価償却など）
+    enriched = process_gpt_and_enrich(journal, ocr_text)
+
+    # 書き込み処理
+    write_entries_to_sheet(
+        entries=enriched["entries"],
+        date=enriched["date"],
+        summary=enriched["summary"]
+    )
+
+    return {
+        "status": "success",
+        "message": "スプレッドシートに書き込みました",
+        "ocr_text": ocr_text,
+        "journal": enriched
+    }
+
+
+
+
+### app/service/gpt.py
+
+import os
+import json
+from dotenv import load_dotenv
+from openai import OpenAI
+from pydantic import BaseModel
+from app.service.sheets import write_entries_to_sheet
+from app.service.depreciation_calc import calculate_depreciation_by_year
+from app.utils import extract_fiscal_mmdd_period, derive_calc_closing_date
+from app import logger
+from fastapi import APIRouter
+import numpy as np
+from app.service.ocr import extract_text_from_frame
+# from collections import defaultdict
+from datetime import datetime
+
+
+
+
+env = os.getenv("ENV", "production")
+dotenv_file = f".env.{env}"
+load_dotenv(dotenv_file)
+
+api_key = os.getenv("OPENAI_API_KEY_PROJECT_VISION")
+project_id = os.getenv("OPENAI_PROJECT_ID")
+
+
+if not api_key:
+    raise RuntimeError("❌ OPENAI_API_KEY が読み込まれていません。")
+if not project_id:
+    raise RuntimeError("❌ OPENAI_PROJECT_ID が読み込まれていません。")
+
+client = OpenAI(api_key=api_key, project=project_id)
+
+class GPTRequest(BaseModel):
+    text: str
+    
+class WriteRequest(BaseModel):
+    date: str
+    summary: str
+    entries: list[dict]
+
+
+def generate_journal_entries(text: str) -> dict:
+    print("🧠 GPTに問い合わせ中...")
+    prompt = f"""
+以下の日本語文はOCRで抽出された会計取引の記録です。
+この文書から取引内容を読み取り、JSON形式で会計仕訳を出力してください。
+
+# 出力ルール：
+- 出力は JSON のみ。説明や注釈は含めないでください。
+- 金額（amount）は半角数値、カンマは使用しないこと。
+- `entries` の配列に、借方（debit）と貸方（credit）を分けて記述してください。
+- 減価償却費などの金額はシステムが後で計算するため、`amount: 0` で構いません。
+
+# 取引タイプ判定：
+以下の type のいずれかを判定し、出力に含めてください。
+
+- `"purchase"`：仕入取引（支払い方法により「現金」または「買掛金」）
+- `"sales"`：売上取引（入金方法により「現金」または「売掛金」）
+- `"supplies_purchase"`：消耗品など即時費用処理の購入
+- `"asset_purchase"`：備品などの固定資産購入（減価償却対象）
+- `"depreciation"`：減価償却（固定資産の年次償却）
+- `"unknown"`：該当なしまたは不明
+
+# 補足ルール：
+
+- 「〇〇を仕入れた」→ type: `"purchase"`、debit: `"仕入"`
+- 「〇〇を購入した」→ contextに応じて `"supplies_purchase"` か `"asset_purchase"` に分類
+- 「掛け払い」「未払い」等があれば：
+- purchase系は credit: `"買掛金"`（または `"未払金"`）
+- sales系は credit: `"売掛金"`
+- 支払・受取方法の記載がない場合、現金処理とする
+- 減価償却時は debit: `"減価償却費"`, credit: `"減価償却累計額"`
+- 売上取引（type: "sales"）では、「売上」は必ず `credit_entries` に含めてください
+- 金額が20万円を超える`"supplies_purchase"`の場合は、`"備品"`に分類する
+
+---
+
+# JSON出力形式（全タイプ共通）：
+
+{{
+  "type": "purchase"｜"sales"｜"depreciation"｜"supplies_purchase"｜"asset_purchase"｜"unknown",
+  "date": "YYYY-MM-DD",
+  "summary": "取引の概要（簡潔に）",
+  "supplier": "仕入先名（任意）",
+  "customer": "顧客名（任意）",
+  "asset_name": "資産名（必要な場合）",
+  "acquisition_date": "取得日（固定資産用）",
+  "calc_closing_date": "初年度決算日（減価償却用）",
+  "target_year": "償却対象年度末（減価償却用）",
+  "closing_date": "target_yearと同じ値を設定（必須）",
+  "method": "償却方法（例：定額法、200%定率法、級数法、生産高比例法）",
+  "amount": 資産原価（数値）,
+  "life": 耐用年数（整数）,
+  "current_volume": 生産量（生産高比例法時のみ）,
+  "total_volume": 総生産可能量（同上）,
+  "debit_entries": [ {{"account": "勘定科目", "amount": 金額}} ],
+  "credit_entries": [ {{"account": "勘定科目", "amount": 金額}} ]
+}}
+
+---
+
+# 減価償却取引（type: "depreciation"）に関する特別指示：
+
+- `summary`: 例「機械の減価償却」など簡潔に記述
+- `asset_name`: 対象資産（例："機械", "車両運搬具"）
+- `acquisition_date`: 資産の取得日（YYYY-MM-DD）
+- `calc_closing_date`: 初年度の決算日（取得年度末）
+- `target_year`: 今回取得したい償却年度末（例：2025-03-31）
+- `closing_date`: `target_year` と同一に設定すること
+- `method`: 償却方法（"定率法" → "200%定率法" に変換）
+- `amount`: 取得価格（半角数値）
+- `life`: 耐用年数（整数）
+- `entries`: 金額は `0` で良い（後でシステム計算）
+
+## 生産高比例法の場合：
+- `method`: "生産高比例法"
+- `current_volume`: 当期生産量（整数）
+- `total_volume`: 総生産可能量（整数）
+- `amount`: 取得原価
+
+注意事項：
+- `calc_closing_date` は資産を取得した初年度の決算日でフォームに入力する決算日です（通常は取得日の年 + 会計年度末）。
+- `target_year` はテーブルから減価償却費を取得したい年度の決算日です（例：2025-03-31）。
+---
+
+以下が対象の取引文です：
+
+{text}
+"""
+
+
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "あなたは会計士です。JSONだけを出力してください。余計な説明を含めないでください。"},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    content = response.choices[0].message.content
+    print("📥 GPT応答:", content)
+    # ログを保存
+    logger.save_log(prompt, prefix="gpt_prompt")
+    logger.save_log(content, prefix="gpt_response")
+
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        raise ValueError("❌ GPTの出力がJSONとして解析できませんでした。\n出力:\n" + content)
+    
+    
+# # 重複科目を合算   
+# def convert_to_entries(debit_entries: list[dict], credit_entries: list[dict]) -> list[dict]:
+#     entries = []
+#     for debit in debit_entries:
+#         entries.append({"debit": debit["account"], "credit": "", "amount": debit["amount"]})
+#     for credit in credit_entries:
+#         entries.append({"debit": "", "credit": credit["account"], "amount": credit["amount"]})
+#     return entries
+
+# def merge_entries_by_account(entries: list[dict]) -> list[dict]:
+#     merged = defaultdict(int)
+#     for entry in entries:
+#         merged[entry["account"]] += entry["amount"]
+#     return [{"account": acc, "amount": amt} for acc, amt in merged.items()]
+    
+# def merge_duplicate_entries(entries: list[dict]) -> list[dict]:
+#     merged = defaultdict(int)
+#     for entry in entries:
+#         key = (entry['debit'], entry['credit'])
+#         merged[key] += entry['amount']
+#     return [
+#         {"debit": k[0], "credit": k[1], "amount": v}
+#         for k, v in merged.items()
+#     ]
+
+
+# 減価償却費の自動取得 (会計年度補正)→ 金額反映 → スプレッドシート書き込みまで一貫
+def process_gpt_and_enrich(gpt_data: dict, ocr_text: str) -> dict:
+    _, fiscal_end = extract_fiscal_mmdd_period(ocr_text)
+    if not fiscal_end:
+        fiscal_end = "03-31"
+
+    
+    logger.save_log(ocr_text, prefix="ocr_text")
+    
+    if gpt_data.get("type") == "depreciation":
+        # 減価償却 → 特別処理（単一entry構造）
+        acquisition_date = gpt_data.get("acquisition_date")
+        if acquisition_date and fiscal_end:
+            gpt_data["calc_closing_date"] = derive_calc_closing_date(acquisition_date, fiscal_end)
+
+        # fiscal year補完（必要な場合）
+        if not gpt_data.get("closing_date"):
+            gpt_data["closing_date"] = gpt_data.get("calc_closing_date")
+        if not gpt_data.get("target_year"):
+            gpt_data["target_year"] = gpt_data.get("closing_date")
+            
+        # 減価償却方法の変換：定率法 → 200%定率法
+        gpt_method = gpt_data.get("method", "")
+        if gpt_method == "定率法":
+            gpt_data["method"] = "200%定率法"
+
+        # 減価償却費の自動取得（最優先）
+        try:
+            dep = calculate_depreciation_by_year(
+                starting_date=gpt_data.get("acquisition_date"),
+                calc_closing_date=gpt_data.get("calc_closing_date"),
+                method=gpt_data.get("method"),
+                price=gpt_data.get("amount"),
+                life=gpt_data.get("life"),
+                target_year=gpt_data.get("target_year"),
+                current_volume=gpt_data.get("current_volume"),
+                total_volume=gpt_data.get("total_volume")
+            )
+        except Exception as e:
+            print(f"❌ 減価償却費取得エラー: {e}")
+            dep = None
+
+        # 資産名付き減価償却累計額として帳簿を記録する
+        credit_title = f"{gpt_data.get('asset_name', '')}減価償却累計額"
+        gpt_data["entries"] = [{
+            "debit": "減価償却費",
+            "credit": credit_title,
+            "amount": dep if dep is not None else 0
+        }]
+    else:
+        # 複数明細処理 勘定科目の合算は行わない
+        debit_entries = gpt_data.get("debit_entries", [])
+        credit_entries = gpt_data.get("credit_entries", [])
+        entries = []
+        
+        # 対応：貸方が1件なら繰り返して複数借方に対応
+        if len(credit_entries) == 1 and len(debit_entries) > 1:
+            credit = credit_entries[0]
+            for debit in debit_entries:
+                entries.append({
+                    "debit": debit["account"],
+                    "credit": credit["account"],
+                    "amount": debit["amount"]
+                })
+        elif len(debit_entries) == 1 and len(credit_entries) > 1:
+            debit = debit_entries[0]
+            for credit in credit_entries:
+                entries.append({
+                    "debit": debit["account"],
+                    "credit": credit["account"],
+                    "amount": credit["amount"]
+                })
+        else:
+            for debit in debit_entries:
+                entries.append({
+                    "debit": debit["account"],
+                    "credit": "",
+                    "amount": debit["amount"]
+                })
+            for credit in credit_entries:
+                entries.append({
+                    "debit": "",
+                    "credit": credit["account"],
+                    "amount": credit["amount"]
+                })
+
+        gpt_data["entries"] = entries
+
+    logger.save_json(gpt_data, prefix="gpt_enriched")
+    return gpt_data
+
+
+
+# 仕訳の生成からシートへの書き込み
+def convert_and_write_from_text(text: str):
+    journal = generate_journal_entries(text)
+    enriched = process_gpt_and_enrich(journal, text)
+    date = (
+        enriched.get("target_year")
+        or enriched.get("date")
+        or enriched.get("acquisition_date")
+        or enriched.get("calc_closing_date")
+        or datetime.now().strftime("%Y-%m-%d")
+    )
+    write_entries_to_sheet(
+        entries=enriched["entries"],
+        date=date,
+        summary=enriched["summary"],
+        bordered=True
+    )
+    return {"status": "success", "message": "スプレッドシートに書き込みました"}
+
+
+
+# #カメラの撮影からOCR処理 → シートへの書き込みを行う
+# def process_ocr_and_send(frame: np.ndarray):
+#     ocr_text = extract_text_from_frame(frame)
+#     print("📝 OCR抽出テキスト:", ocr_text)
+#     journal = generate_journal_entries(ocr_text)
+#     enriched = process_gpt_and_enrich(journal, ocr_text)
+#     date = (
+#     enriched.get("target_year") or
+#     enriched.get("closing_date") or
+#     enriched.get("calc_closing_date") or
+#     enriched.get("date") or
+#     enriched.get("acquisition_date") or
+#     datetime.now().strftime("%Y-%m-%d")
+# )
+
+
+
+#     write_entries_to_sheet(
+#         entries=enriched["entries"],
+#         date=date,
+#         summary=enriched["summary"]
+        # bordered=True
+#     )
+#     return {
+#         "status": "success",
+#         "message": "スプレッドシートに書き込みました",
+#         "ocr_text": ocr_text,
+#         "journal": enriched
+#     }
+
+# 追加: convert_and_write ルート用 FastAPI router
+router = APIRouter()
+
+@router.post("/convert_and_write")
+def convert_and_write_endpoint(req: GPTRequest):
+    return convert_and_write_from_text(req.text)
+
+
+
+### app/services/depreciation_calc.py
+# 減価償却費を外部サイトから Seleniumを使って自動取得
+
+import time
+from datetime import datetime, timedelta
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
+
+
+def calculate_depreciation_by_year(
+    starting_date: str,
+    calc_closing_date: str,
+    method: str,
+    price: float,
+    life: int,
+    target_year: str,
+    current_volume: float = None,
+    total_volume: float = None
+) -> float | None:
+    """
+    指定された条件に基づいて、Selenium経由で減価償却費を自動取得する。
+
+    Returns:
+        指定年度の減価償却費（float）または None（取得失敗時）
+    """
+    try:
+        options = Options()
+        # options.add_argument("--headless") #コメントアウトすることで開発段階にGUI確認を可能にすることができる 
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        # options.add_argument('--headless')  # 開発中は GUI 表示を有効にする
+
+        driver = webdriver.Chrome(options=options)
+        driver.get("https://stylefunc287.xsrv.jp/php/dep.php")
+
+        # 入力フォームの要素取得と入力
+        starting_input = driver.find_element(By.ID, "startingDate")
+        closing_input = driver.find_element(By.ID, "closingDate")
+        driver.execute_script("arguments[0].value = arguments[1]", starting_input, starting_date) # JavaScript を使って値を直接設定する。　フォーマット依存を避ける。　今回アクセスするwebページの日付入力欄のフォーマットは自動入力だと誤入力を起こしてしまう。
+        driver.execute_script("arguments[0].value = arguments[1]", closing_input, calc_closing_date)
+        Select(driver.find_element(By.ID, "cluculateMethod")).select_by_visible_text(method)
+        driver.find_element(By.ID, "purchasePrice").send_keys(str(price))
+        driver.find_element(By.ID, "usefulLife").send_keys(str(life))
+
+        if method == "生産高比例法":
+            driver.find_element(By.ID, "currentVolume").send_keys(str(current_volume or ""))
+            driver.find_element(By.ID, "totalVolume").send_keys(str(total_volume or ""))
+
+        driver.find_element(By.ID, "submit").click()
+        time.sleep(2)
+
+        # テーブルから該当年度の減価償却費を抽出
+        rows = driver.find_elements(By.CSS_SELECTOR, "tbody.record tr")
+        for row in rows:
+            cols = row.find_elements(By.TAG_NAME, "td")
+            if len(cols) >= 3 and cols[0].text.strip() == target_year:
+                value = cols[2].text.replace(",", "")
+                driver.quit()
+                return float(value)
+
+        driver.quit()
+        return None
+
+    except Exception as e:
+        print(f"❌ 減価償却費取得エラー: {e}")
+        return None
+
+
+### app/service/ocr.py
+
+import io
+import os
+from google.cloud import vision
+from dotenv import load_dotenv
+from pathlib import Path
+from PIL import Image
+import io
+from google.cloud import vision
+import cv2
+import numpy as np
+
+
+env = os.getenv("ENV", "production")
+dotenv_file = f".env.{env}"
+load_dotenv(dotenv_file)
+# 相対パス → 絶対パスに変換
+# cred_path = Path(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")).resolve()
+# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cred_path)
+
+
+client = vision.ImageAnnotatorClient()
+
+def extract_text_from_frame(frame: np.ndarray) -> str:
+    # OpenCV画像をJPEGに変換
+    _, encoded_image = cv2.imencode('.jpg', frame)
+    content = encoded_image.tobytes()
+
+    image = vision.Image(content=content)
+    response = client.text_detection(image=image)
+
+    if response.error.message:
+        raise Exception(f"Vision API error: {response.error.message}")
+
+    # テキストを一つにまとめる
+    text = response.text_annotations[0].description if response.text_annotations else ""
+    return text.strip()
+
+
+def extract_text_from_image(image_path: str) -> str:
+    print(f"🖼 OCR処理開始: {image_path}")
+    client = vision.ImageAnnotatorClient()
+
+    with io.open(image_path, 'rb') as image_file:
+        content = image_file.read()
+
+    image = vision.Image(content=content)
+    response = client.text_detection(image=image)
+
+    if response.error.message:
+        raise Exception(f"OCRエラー: {response.error.message}")
+
+    texts = response.text_annotations
+    extracted = texts[0].description if texts else ''
+    print("📝 OCR抽出テキスト:", extracted)
+    return extracted
+
+
+
+### app/service/sheets.py
+
+import os
+from typing import List
+import gspread
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from dotenv import load_dotenv
+
+env = os.getenv("ENV", "production")
+dotenv_file = f".env.{env}"
+load_dotenv(dotenv_file)
+
+# dotenv_path = os.path.join(os.path.dirname(__file__), "/Users/yusukek/Desktop/web_create/styleFunction/project_SF/journal_translate/gpt_journal_translation/.env.production")
+# load_dotenv(dotenv_path)
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID_PROJECT_VISION")
+SHEET_NAME = os.getenv("SHEET_NAME", "仕訳帳")
+
+
+def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordered=False):
+    print("📤 Google Sheetsへ書き込み開始")
+    creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    worksheet = gc.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
+
+    values = []
+    for i, entry in enumerate(entries):
+        row = [
+            date if i == 0 else "",
+            entry["debit"],
+            entry["amount"],
+            entry["credit"],
+            entry["amount"],
+            summary if i == 0 else ""
+        ]
+        values.append(row)
+
+    worksheet.append_rows(values, value_input_option="USER_ENTERED")
+    print("✅ スプレッドシートに仕訳を追加しました。")
+
+    # ✅ 罫線処理が必要な場合
+    if bordered:
+        service = build("sheets", "v4", credentials=creds)
+        sheet = service.spreadsheets()
+        sheet_metadata = sheet.get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_id = next(s["properties"]["sheetId"] for s in sheet_metadata["sheets"] if s["properties"]["title"] == SHEET_NAME)
+        start_row = worksheet.row_count - len(values) + 1
+        end_row = worksheet.row_count
+
+        requests = [{
+            "updateBorders": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": start_row - 1,
+                    "endRowIndex": end_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": 6
+                },
+                "top": {"style": "SOLID"},
+                "bottom": {"style": "SOLID"},
+                "left": {"style": "SOLID"},
+                "right": {"style": "SOLID"},
+                "innerHorizontal": {"style": "SOLID"},
+                "innerVertical": {"style": "SOLID"}
+            }
+        }]
+        sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": requests}).execute()
+        print("🖋️ 罫線を追加しました。")
+
+
+
+

@@ -1,0 +1,32 @@
+{
+  "type": "depreciation",
+  "date": "2025-04-01",
+  "summary": "機械の減価償却",
+  "asset_name": "機械",
+  "acquisition_date": "2021-04-01",
+  "calc_closing_date": "2022-03-31",
+  "target_year": "2026-03-31",
+  "closing_date": "2026-03-31",
+  "method": "200%定率法",
+  "amount": 1800000,
+  "life": 8,
+  "debit_entries": [
+    {
+      "account": "減価償却費",
+      "amount": 0
+    }
+  ],
+  "credit_entries": [
+    {
+      "account": "減価償却累計額",
+      "amount": 0
+    }
+  ],
+  "entries": [
+    {
+      "debit": "減価償却費",
+      "credit": "機械減価償却累計額",
+      "amount": 142383.0
+    }
+  ]
+}
