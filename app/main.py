@@ -36,13 +36,14 @@ app.include_router(purchase.router, prefix="/journal")
 app.include_router(depreciation.router, prefix="/journal")
 app.include_router(asset_purchase.router, prefix="/journal")
 app.include_router(supplies_purchase.router, prefix="/journal")
-app.include_router(gpt.router)
+# OCR用ルーター → プレフィックスを一元管理
 app.include_router(camera_ocr_router.router, prefix="/camera")
+# GPT関連
 app.include_router(gpt.router, prefix="/text")
-# app.include_router(upload_and_process_router.router)
+# カメラ機能用（videoや画像取得など）
 app.include_router(camera_router)
-# UIルートのAPIルーターを登録
-app.include_router(camera_ocr_router.router)
+# app.include_router(upload_and_process_router.router)
+
 
 
 
@@ -53,10 +54,6 @@ class WriteRequest(BaseModel):
     date: str
     summary: str
     entries: list[dict]
-
-@app.get("/")
-def root():
-    return {"message": "FastAPI is running."}
 
 @app.post("/ocr")
 async def ocr_endpoint(file: UploadFile = File(...)):
