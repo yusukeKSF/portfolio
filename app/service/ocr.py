@@ -3,21 +3,26 @@
 import io
 import os
 from google.cloud import vision
-from dotenv import load_dotenv
-from pathlib import Path
-from PIL import Image
-import io
-from google.cloud import vision
 import cv2
 import numpy as np
+# デプロイようにAPIの読み込みについて追加修正
+import tempfile
 
 
-env = os.getenv("ENV", "production")
-dotenv_file = f".env.{env}"
-load_dotenv(dotenv_file)
-# 相対パス → 絶対パスに変換
-# cred_path = Path(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")).resolve()
-# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(cred_path)
+# 環境変数に保存されたJSON文字列を取得
+credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+if credentials_json:
+    # 一時ファイルに書き出してから認証に使用
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp_json_file:
+        temp_json_file.write(credentials_json)
+        temp_json_file_path = temp_json_file.name
+
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_json_file_path
+
+# env = os.getenv("ENV", "production")
+# dotenv_file = f".env.{env}"
+# load_dotenv(dotenv_file)
 
 
 client = vision.ImageAnnotatorClient()
