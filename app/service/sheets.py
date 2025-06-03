@@ -1,3 +1,5 @@
+### app/service/sheets.py
+
 import os
 import json
 from typing import List
@@ -19,6 +21,13 @@ SHEET_NAME = os.getenv("SHEET_NAME", "仕訳帳")
 
 # ✅ 認証情報の切り替え（Render用JSON or ローカルファイル）
 def get_credentials():
+    
+    # 🔽 デバッグ用に環境変数の状態を出力
+    json_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    print(f"🔍 GOOGLE_APPLICATION_CREDENTIALS_JSON exists: {bool(json_str)}")
+    print(f"🔍 GOOGLE_APPLICATION_CREDENTIALS: {creds_path}")
+    
     json_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
     if json_str:
         info = json.loads(json_str)
@@ -29,6 +38,11 @@ def get_credentials():
 
 def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordered=False):
     print("📤 Google Sheetsへ書き込み開始")
+    
+    # 🔽 デバッグ用: 環境変数の中身を確認
+    print(f"🔍 SPREADSHEET_ID: {SPREADSHEET_ID}")
+    print(f"🔍 SHEET_NAME: {SHEET_NAME}")
+    
     creds = get_credentials()
 
     gc = gspread.authorize(creds)
