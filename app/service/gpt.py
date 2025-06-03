@@ -11,12 +11,9 @@ from app.utils import extract_fiscal_mmdd_period, derive_calc_closing_date, conv
 from app import logger
 from fastapi import APIRouter
 import numpy as np
-from app.service.ocr import extract_text_from_frame
-# from collections import defaultdict
 from datetime import datetime
 import re
-
-
+# from collections import defaultdict
 
 
 env = os.getenv("ENV", "production")
@@ -152,31 +149,6 @@ def generate_journal_entries(text: str) -> dict:
     except json.JSONDecodeError:
         raise ValueError("❌ GPTの出力がJSONとして解析できませんでした。\n出力:\n" + content)
     
-    
-# # 重複科目を合算   
-# def convert_to_entries(debit_entries: list[dict], credit_entries: list[dict]) -> list[dict]:
-#     entries = []
-#     for debit in debit_entries:
-#         entries.append({"debit": debit["account"], "credit": "", "amount": debit["amount"]})
-#     for credit in credit_entries:
-#         entries.append({"debit": "", "credit": credit["account"], "amount": credit["amount"]})
-#     return entries
-
-# def merge_entries_by_account(entries: list[dict]) -> list[dict]:
-#     merged = defaultdict(int)
-#     for entry in entries:
-#         merged[entry["account"]] += entry["amount"]
-#     return [{"account": acc, "amount": amt} for acc, amt in merged.items()]
-    
-# def merge_duplicate_entries(entries: list[dict]) -> list[dict]:
-#     merged = defaultdict(int)
-#     for entry in entries:
-#         key = (entry['debit'], entry['credit'])
-#         merged[key] += entry['amount']
-#     return [
-#         {"debit": k[0], "credit": k[1], "amount": v}
-#         for k, v in merged.items()
-#     ]
 
 
 # 減価償却費の自動取得 (会計年度補正)→ 金額反映 → スプレッドシート書き込みまで一貫
@@ -224,19 +196,6 @@ def process_gpt_and_enrich(gpt_data: dict, ocr_text: str) -> dict:
                 current_volume=gpt_data.get("current_volume"),
                 total_volume=gpt_data.get("total_volume")
             )
-            # if dep:
-            #     gpt_data["closing_date"] = gpt_data.get("calc_closing_date")  # FastAPIに送るため
-            #     print(f"✅ 減価償却費を上書き: {dep}")
-            #     if "entries" in gpt_data and gpt_data["entries"]:
-            #         gpt_data["entries"][0]["amount"] = dep
-            #     else:
-            #         gpt_data["entries"] = [{
-            #             "debit": "減価償却費",
-            #             "credit": "減価償却累計額",
-            #             "amount": dep
-            #         }]
-            # else:
-            #     print("❌ 減価償却費が取得できませんでした。")
             
         except Exception as e:
             print(f"❌ 減価償却費取得エラー: {e}")
@@ -303,8 +262,6 @@ def process_gpt_and_enrich(gpt_data: dict, ocr_text: str) -> dict:
 def convert_and_write_from_text(text: str):
     gpt_data = generate_journal_entries(text)
     enriched = process_gpt_and_enrich(gpt_data, text)
-    # journal = generate_journal_entries(text)
-    # enriched = process_gpt_and_enrich(journal, text)
     
     target_year = enriched.get("target_year")
     if not target_year or not isinstance(target_year, str) or len(target_year) < 8:
@@ -333,17 +290,6 @@ def convert_and_write_from_text(text: str):
     for e in enriched["entries"]:
         print(f"- {e}")
 
-    # === 書き込み内容の確認 ===
-    # CLI のみ対応
-
-    # ユーザーに確認
-    confirm = input("この内容をスプレッドシートに書き込みますか？ (y/n): ")
-    if confirm.strip().lower() == "n":
-        print("🛑 書き込みをキャンセルしました。")
-        import sys
-        sys.exit(0)
-
-    # =======================
 
     write_entries_to_sheet(
         entries=enriched["entries"],
@@ -354,37 +300,6 @@ def convert_and_write_from_text(text: str):
     return {"status": "success", "message": "スプレッドシートに書き込みました"}
 
 
-# # #カメラの撮影からOCR処理 → シートへの書き込みを行う
-# def process_ocr_and_send(frame: np.ndarray):
-#     ocr_text = extract_text_from_frame(frame)
-#     print("📝 OCR抽出テキスト:", ocr_text)
-#     journal = generate_journal_entries(ocr_text)
-#     enriched = process_gpt_and_enrich(journal, ocr_text)
-#     date = (
-#         enriched.get("target_year") or
-#         enriched.get("closing_date") or
-#         enriched.get("calc_closing_date") or
-#         enriched.get("date") or
-#         enriched.get("acquisition_date") or
-#         datetime.now().strftime("%Y-%m-%d")
-#     )
-#     print(f"🕓 使用する記帳日付: {date}")
-
-#     write_entries_to_sheet(
-#         entries=enriched["entries"],
-#         date=date,
-#         summary=enriched["summary"],
-#         bordered=True
-#     )
-    
-#     return {
-#         "status": "success",
-#         "message": "スプレッドシートに書き込みました",
-#         "ocr_text": ocr_text,
-#         "journal": enriched
-#     }
-
-# 追加: convert_and_write ルート用 FastAPI router
 router = APIRouter()
 
 @router.post("/convert_and_write")
