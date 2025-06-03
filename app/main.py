@@ -16,13 +16,19 @@ from app.routes.camera_ocr_router import router as camera_router
 from app.routes.camera_ocr_router import process_ocr_and_send
 
 # UI 実装ステップ 
+from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.requests import Request
 from fastapi.staticfiles import StaticFiles
+from app.routes import camera_ocr_router
 
 
 
 app = FastAPI()
+
+# 静的ファイルのマウント
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# テンプレート読み込み
+templates = Jinja2Templates(directory="app/templates")
 
 # ルーター登録
 app.include_router(sales.router, prefix="/journal")
@@ -35,10 +41,9 @@ app.include_router(camera_ocr_router.router, prefix="/camera")
 app.include_router(gpt.router, prefix="/text")
 # app.include_router(upload_and_process_router.router)
 app.include_router(camera_router)
+# UIルートのAPIルーターを登録
+app.include_router(camera_ocr_router.router)
 
-# UI 実装ステップ 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
 
 
 class GPTRequest(BaseModel):
@@ -79,35 +84,8 @@ async def upload_and_process(file: UploadFile = File(...)):
     # UploadFile をそのまま camera_ocr_router に渡して処理
     return await process_ocr_and_send(file)
 
-# UI 実装ステップ 
+# UIルート デプロイ用
 @app.get("/")
-def read_root(request: Request):
+async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# @app.post("/upload")
-# async def upload_and_process(file: UploadFile = File(...)):
-#     temp_path = f"temp_images/{file.filename}"
-#     with open(temp_path, "wb") as buffer:
-#         shutil.copyfileobj(file.file, buffer)
-
-#     # OCR → GPT → スプレッドシートへの書き込み処理
-#     frame = cv2.imread(temp_path)
-#     result = process_ocr_and_send(frame)
-
-#     return result  # OCRテキスト、GPT結果、書き込み結果を含む
-
-
-
-# /generate と /write を1回のPOSTで完了するため統合
-# @app.post("/convert_and_write")
-# def convert_and_write(req: GPTRequest):
-#     journal = generate_journal_entries(req.text)
-#     entries = [entry for entry in journal["entries"]]
-#     write_req = WriteRequest(
-#         date=journal["date"],
-#         summary=journal["summary"],
-#         entries=entries
-#     )
-# @app.post("/convert_and_write")
-# def convert_and_write(req: GPTRequest):
-#     return gpt.convert_and_write_from_text(req.text)
