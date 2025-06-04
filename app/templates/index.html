@@ -46,6 +46,13 @@
                 });
 
                 const data = await res.json();
+
+                console.log("サーバーからのレスポンス:", data);
+                // デバッグ用
+                if (!data.journal || !data.journal.entries) {
+                    statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
+                    return;
+                }
                 statusMessage.textContent = '処理が完了しました。';
                 
                 // 仕訳結果の整形表示
