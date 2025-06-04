@@ -7,6 +7,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
+from datetime import datetime
+from zoneinfo import ZoneInfo  # Python 3.9 以上対応
 
 # 環境ごとの .env ファイルを読み込む（ローカル用）
 env = os.getenv("ENV", "production")
@@ -33,9 +35,12 @@ def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordere
     print("📤 Google Sheetsへ書き込み開始", flush=True)
     
     creds = get_credentials()
-
     gc = gspread.authorize(creds)
     worksheet = gc.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
+    
+    # 東京時間（JST）に変換
+    jst = ZoneInfo("Asia/Tokyo")
+    timestamp = datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S")
 
     values = []
     for i, entry in enumerate(entries):
@@ -45,7 +50,8 @@ def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordere
             entry["amount"],
             entry["credit"],
             entry["amount"],
-            summary if i == 0 else ""
+            summary if i == 0 else "",
+            timestamp if i == 0 else ""  # 転記日時の記入
         ]
         values.append(row)
 
@@ -70,7 +76,7 @@ def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordere
                     "startRowIndex": start_row - 1,
                     "endRowIndex": end_row - 1,
                     "startColumnIndex": 0,
-                    "endColumnIndex": 6  # A〜F列
+                    "endColumnIndex": 7  # A〜G列
                 },
                 "top": {"style": "SOLID_MEDIUM"},
                 "bottom": {"style": "SOLID_MEDIUM"},
