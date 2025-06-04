@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <title>仕訳取引画像アップロード</title>
         <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         #preview {
             max-width: 300px;
             margin-top: 10px;
@@ -35,49 +40,72 @@
     <img id="preview" />
     <div id="result"></div>
 
-<script>
-    document.getElementById('upload-form').addEventListener('submit', async function (e) {
-        e.preventDefault();
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
 
-        const fileInput = document.getElementById('image-file');
-        const file = fileInput.files[0];
-        const formData = new FormData();
-        formData.append('file', file);
+            const fileInput = document.getElementById('image-file');
+            const formData = new FormData();
+            const file = fileInput.files[0];
+            formData.append('file', file);
 
-        const statusDiv = document.getElementById('status');
-        const resultDiv = document.getElementById('result');
-        const previewImg = document.getElementById('preview');
+            // 状態表示
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = '画像を分析しています...';
 
-        // 状態表示
-        statusDiv.textContent = "🔍 画像を分析しています...";
-        resultDiv.innerHTML = "";
+            // 画像プレビュー
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー" width="300">`;
+            };
+            reader.readAsDataURL(file);
 
-        // プレビュー表示
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            previewImg.src = e.target.result;
-            previewImg.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+            try {
+                const res = await fetch('/convert_and_write', {
+                    method: 'POST',
+                    body: formData
+                });
 
-        try {
-            const res = await fetch('/convert_and_write', {
-                method: 'POST',
-                body: formData
-            });
+                const data = await res.json();
+                statusMessage.textContent = '処理が完了しました。';
+                
+                // 仕訳結果の整形表示
+                const journal = data.journal;
+                const table = document.createElement('table');
+                table.border = "1";
+                table.style.borderCollapse = "collapse";
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>借方</th>
+                            <th>金額</th>
+                            <th>貸方</th>
+                            <th>金額</th>
+                            <th>摘要</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${journal.entries.map((e, i) => `
+                            <tr>
+                                <td>${i === 0 ? journal.date || '' : ''}</td>
+                                <td>${e.debit}</td>
+                                <td>${e.amount}</td>
+                                <td>${e.credit}</td>
+                                <td>${e.amount}</td>
+                                <td>${i === 0 ? journal.summary || '' : ''}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                document.getElementById('journal-table').innerHTML = '<h2>📄 仕訳内容</h2>';
+                document.getElementById('journal-table').appendChild(table);
 
-            if (!res.ok) throw new Error("処理に失敗しました。");
-
-            const data = await res.json();
-            statusDiv.textContent = "✅ 分析完了";
-
-            // 結果表示（仕訳情報）
-            resultDiv.innerHTML = '<h3>📄 仕訳結果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
-        } catch (error) {
-            statusDiv.textContent = "❌ エラーが発生しました";
-            resultDiv.innerHTML = `<pre>${error}</pre>`;
-        }
-    });
-</script>
+            } catch (error) {
+                statusMessage.textContent = 'エラーが発生しました。';
+                console.error(error);
+            }
+        });
+    </script>
 </body>
 </html>
