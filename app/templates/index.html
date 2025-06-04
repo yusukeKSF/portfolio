@@ -4,6 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <title>仕訳取引画像アップロード</title>
+        <style>
+        #preview {
+            max-width: 300px;
+            margin-top: 10px;
+            display: none;
+        }
+        #status {
+            font-weight: bold;
+            color: #007BFF;
+            margin-top: 10px;
+        }
+        #result pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
 <body>
     <h1>📤 画像アップロードで仕訳処理</h1>
@@ -13,24 +31,53 @@
         <button type="submit">アップロードして処理</button>
     </form>
 
+    <div id="status"></div>
+    <img id="preview" />
     <div id="result"></div>
 
-    <script>
-        document.getElementById('upload-form').addEventListener('submit', async function (e) {
-            e.preventDefault();
+<script>
+    document.getElementById('upload-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-            const fileInput = document.getElementById('image-file');
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+        const fileInput = document.getElementById('image-file');
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
 
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const previewImg = document.getElementById('preview');
+
+        // 状態表示
+        statusDiv.textContent = "🔍 画像を分析しています...";
+        resultDiv.innerHTML = "";
+
+        // プレビュー表示
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            previewImg.src = e.target.result;
+            previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        try {
             const res = await fetch('/convert_and_write', {
                 method: 'POST',
                 body: formData
             });
 
+            if (!res.ok) throw new Error("処理に失敗しました。");
+
             const data = await res.json();
-            document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-        });
-    </script>
+            statusDiv.textContent = "✅ 分析完了";
+
+            // 結果表示（仕訳情報）
+            resultDiv.innerHTML = '<h3>📄 仕訳結果:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } catch (error) {
+            statusDiv.textContent = "❌ エラーが発生しました";
+            resultDiv.innerHTML = `<pre>${error}</pre>`;
+        }
+    });
+</script>
 </body>
 </html>
