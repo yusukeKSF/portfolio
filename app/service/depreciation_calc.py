@@ -30,7 +30,7 @@ def calculate_depreciation_by_year(
     """
     try:
         options = Options()
-        options.add_argument("--headless") #コメントアウトすることで開発段階にGUI確認を可能にすることができる 
+        # options.add_argument("--headless") #コメントアウトすることで開発段階にGUI確認を可能にすることができる 
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         # options.add_argument('--headless')  # 開発中は GUI 表示を有効にする
