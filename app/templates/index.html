@@ -15,9 +15,9 @@
         <button type="submit">アップロードして処理</button>
     </form>
 
-    <p id="status-message" style="color: blue;"></p>
     <div id="image-preview"></div>
     <div id="journal-table"></div>
+    <p id="status-message"></p>
 
     <script>
         document.getElementById('upload-form').addEventListener('submit', async function (e) {
@@ -47,12 +47,13 @@
 
                 const data = await res.json();
 
-                console.log("サーバーからのレスポンス:", data);
                 // デバッグ用
+                console.log("サーバーからのレスポンス:", data);
                 if (!data.journal || !data.journal.entries) {
                     statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
                     return;
                 }
+
                 statusMessage.textContent = '処理が完了しました。';
                 
                 // 仕訳結果の整形表示

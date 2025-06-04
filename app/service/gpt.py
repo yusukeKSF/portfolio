@@ -283,13 +283,10 @@ def convert_and_write_from_text(text: str):
             datetime.now().strftime("%Y-%m-%d")
         )
 
-    
-    
     print("📄 書き込み内容:")
     print(f"🕓 使用する記帳日付: {date}")
     for e in enriched["entries"]:
         print(f"- {e}")
-
 
     write_entries_to_sheet(
         entries=enriched["entries"],
@@ -297,8 +294,13 @@ def convert_and_write_from_text(text: str):
         summary=enriched["summary"],
         bordered=True
     )
-    return {"status": "success", "journal": enriched}
 
+    # ✅ enriched を返す
+    return {
+        "status": "success",
+        "message": "スプレッドシートに書き込みました",
+        "journal": enriched
+    }
 
 router = APIRouter()
 

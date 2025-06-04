@@ -19,10 +19,23 @@
         h2 {
             margin: 20px auto;
         }
+        table, thead {
+            border: 2px solid black;
+        }
+        table, td {
+            max-width: 700px;
+            margin: 20px auto;
+            white-space: nowrap;
+        }
         .thumbnail {
             width: 500px;
             height: 150px;
             margin-bottom: 30px;
+        }
+        #status-message {
+            font-weight: bold;
+            color: #007BFF;
+            margin: 10px auto;
         }
         #image-preview {
             max-width: 300px;
@@ -35,8 +48,17 @@
             border-radius: 5px;
             white-space: wrap;
         }
-        #status-message {
-            font-weight: bold;
-            color: #007BFF;
-            margin: 10px auto;
+        @media screen and (max-width: 800px) {
+            table, td {
+                padding: 5px;
+                white-space: wrap;
+            }
+            .thumbnail {
+                width: 300px;
+                height: 150px;
+                margin-bottom: 30px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
         }

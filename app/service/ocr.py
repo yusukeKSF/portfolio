@@ -20,11 +20,6 @@ if credentials_json:
 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_json_file_path
 
-# env = os.getenv("ENV", "production")
-# dotenv_file = f".env.{env}"
-# load_dotenv(dotenv_file)
-
-
 client = vision.ImageAnnotatorClient()
 
 def extract_text_from_frame(frame: np.ndarray) -> str:
