@@ -39,7 +39,6 @@
             margin: 10px auto;
         }
         #image-preview {
-            max-width: 300px;
             margin: 10px auto;
             display: none;
         }
@@ -50,9 +49,6 @@
             white-space: wrap;
         }
         @media screen and (max-width: 800px) {
-            body {
-                max-width: 600px;
-            }
             table, td {
                 padding: 5px;
                 white-space: wrap;
