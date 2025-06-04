@@ -297,7 +297,7 @@ def convert_and_write_from_text(text: str):
         summary=enriched["summary"],
         bordered=True
     )
-    return {"status": "success", "message": "スプレッドシートに書き込みました"}
+    return {"status": "success", "journal": enriched}
 
 
 router = APIRouter()
