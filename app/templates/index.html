@@ -11,15 +11,23 @@
             box-sizing: border-box;
         }
         body {
+            margin: 20px;
             width: 600px;
+            height: 800px;
             display: block;
             text-align: center;
+            border: 10px solid rgb(177, 177, 177);
         }
         h1 {
             margin: 30px 0;
         }
         thead {
             margin: 50px 0;
+        }
+        .thumbnail {
+            width: 500px;
+            height: 150px;
+            margin-bottom: 30px;
         }
         #preview {
             max-width: 300px;
@@ -41,6 +49,7 @@
 </head>
 <body>
     <h1>📤 画像アップロードで仕訳処理</h1>
+    <img src="img/thumbnail.jpg" alt="" class="thumbnail">
 
     <form id="upload-form" enctype="multipart/form-data">
         <input type="file" id="image-file" name="file" accept="image/*" required />
