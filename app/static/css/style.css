@@ -9,7 +9,7 @@
             width: 100%;
         }
         main {
-            margin: 20px;
+            margin: 20px auto;
             max-width: 800px;
             height: 900px;
             display: block;
@@ -53,7 +53,7 @@
             white-space: wrap;
         }
         .clear-btn-container {
-            width: 800px;
+            width: 100%;
             text-align: center;
         }
         a#clear-btn {
