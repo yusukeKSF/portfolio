@@ -41,10 +41,16 @@
             color: #007BFF;
             margin: 10px auto;
         }
-        #image-preview img {
-            display: block;
+        #image-preview {
             margin: 30px auto;
-            width: 300px;
+            display: block;
+            max-width: 300px;
+            max-height: 300px;
+        }
+        #image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
         }
         #journal-table {
             background: #f4f4f4;
