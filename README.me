@@ -1,12 +1,57 @@
+
+# Journal Entry Web App
+
+画像から日本語の取引明細を読み取り、AIによって仕訳を生成し、Googleスプレッドシートに記録・表示するWebアプリです。  
+減価償却費の自動取得にも対応し、簿記業務の自動化を目指します。
+
+---
+
+## 🔧 機能概要
+
+- 📸 画像アップロード（jpg, png対応）
+- 🧠 OCR（Google Vision API）による文字抽出
+- 🤖 OpenAI GPT による仕訳データ生成
+- 📊 Google Sheets への自動記入
+- 🗓️ 減価償却費を外部サイトから Selenium で自動取得
+- 🌐 Webページ上に画像・仕訳データを表示
+- 🕓 記入日時の自動記録（東京時間）
+
+---
+
+## 💻 使用技術
+
+|       項目       | 使用技術 |
+
+|   フロントエンド   |   HTML / CSS / JavaScript (Vanilla) 
+|    バックエンド    |   FastAPI (Python) 
+|        AI        |   OpenAI GPT-4 / GPT-3.5 
+|       OCR        |   Google Vision API 
+|      自動記帳     |   gspread / Google Sheets API 
+|    減価償却取得    |   Selenium / ChromeDriver 
+|      インフラ      |   Render (無料ホスティング) 
+|        認証       |   `.env` による環境変数管理 
+
+---
+
+##  セットアップ手順
+
+### 1. 必要パッケージのインストール
+
+```bash
+pip install -r requirements.txt
+
+# .envファイルの例
+.env.exanple に記載。
+
+
+## Web環境での起動方法
+
 ```
-# GPT Journal Translation
+URL:
+https://journal-entry-app.onrender.com
+```
 
-OCRで取得した取引データをGPTで仕訳化し、Googleスプレッドシートに転記する自動化ツール
-当サービスは簿記検定を解けるAIを目指し、今回は特に減価償却費の計算に的を絞った設計となっています。
-当サービスは現段階ではwebアプリとして機能を目指しており、画像ファイルをアップロードすることにより
-OCR出力を行っております。現段階ではカメラ撮影からのOCR出力には対応しておりません。
-
-## 起動方法
+## ローカル環境での起動方法
 
 ```bash
 uvicorn app.main:app --reload
@@ -15,8 +60,8 @@ uvicorn app.main:app --reload
 ```bash
 python send_camera_image.py
 ```
-send_camera_image.py に画像ファイルのパスを設定しておくこと。
-サンプルファイルは imagesディレクトリに用意。
+ローカル環境では send_camera_image.py に画像ファイルのパスを設定しておくこと。
+サンプル画像は imagesディレクトリ(https://github.com/yusukeKSF/portfolio/tree/main/images)に用意。
 
 スプレッドシートへの書き込み確認：
 URL:
@@ -24,12 +69,27 @@ https://docs.google.com/spreadsheets/d/1zbtthNFP7YUkKmMoawS21RRqzVp-pgd9L20_pdfe
 
 
 
+## デモはこちら：
+🔗 https://journal-entry-app.onrender.com
 
-## 使用技術
-- FastAPI
-- OpenAI GPT
-- Google Sheets API
-- Google Vision API
-- Selenium + OCR
-- Python
-```
+
+## 💰 利用に関する注意 / Usage Notes
+
+このアプリは以下の外部APIを使用しています：
+
+- **OpenAI API**（有料）  
+  GPT-4 / GPT-3.5の利用には [OpenAI APIキー](https://platform.openai.com/account/api-keys) が必要です。料金は使用量に応じて課金されます。詳細は [料金ページ](https://openai.com/pricing) をご確認ください。
+
+- **Google Sheets API**（通常は無料）  
+  通常の使用では無料枠内で利用できますが、大量のリクエストや商用利用の場合は制限を超える可能性があります。詳しくは [Google Cloud Platform](https://console.cloud.google.com/) の料金設定をご確認ください。
+
+⚠️ 本プロジェクトをクローン・使用する際は、APIキーの取得・課金設定はご自身の責任で行ってください。
+
+
+## ライセンス / License
+
+このプロジェクトは [MITライセンス](./LICENSE) のもとで公開されています。  
+商用・非商用問わず、自由に使用・改変・配布いただけますが、著作権表示および本ライセンス文を必ず保持してください。
+
+This project is licensed under the [MIT License](./LICENSE).  
+You are free to use, modify, and distribute this software, including for commercial purposes, as long as the copyright notice and this license text are retained.
