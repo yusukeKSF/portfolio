@@ -6,9 +6,12 @@
             box-sizing: border-box;
         }
         body {
+            width: 100%;
+        }
+        main {
             margin: 20px;
             max-width: 800px;
-            height: 800px;
+            height: 900px;
             display: block;
             text-align: center;
             border: 10px solid rgb(177, 177, 177);
@@ -38,17 +41,39 @@
             color: #007BFF;
             margin: 10px auto;
         }
-        #image-preview {
-            margin: 10px auto;
-            /* display: block; */
+        #image-preview img {
+            display: block;
+            margin: 30px auto;
             width: 300px;
         }
         #journal-table {
             background: #f4f4f4;
-            margin: 10px auto;
+            margin: 30px auto;
             border-radius: 5px;
             white-space: wrap;
         }
+        .clear-btn-container {
+            width: 800px;
+            text-align: center;
+        }
+        a#clear-btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid #080808;
+            border-radius: 4px;
+            color: #080808;
+            background-color: #e6e6e6;
+        }
+        footer p {
+            display: flex;
+            height: 50px;
+            justify-content: center;
+            align-items: center;
+            background-color: #e6e6e6;
+            margin-top: 50px;
+        }
+
         @media screen and (max-width: 800px) {
             table, td {
                 padding: 5px;

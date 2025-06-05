@@ -7,92 +7,102 @@
     <title>仕訳取引画像アップロード</title>
 </head>
 <body>
-    <h1>📤 画像アップロードで仕訳処理</h1>
-    <img src="/static/img/thumbnail.jpg" alt="thumbnail" class="thumbnail">
+    <main>
+        <h1>📤 画像アップロードで仕訳処理</h1>
+        <img src="/static/img/thumbnail.jpg" alt="thumbnail" class="thumbnail">
 
-    <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" id="image-file" name="file" accept="image/*" required />
-        <button type="submit">アップロードして処理</button>
-    </form>
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" id="image-file" name="file" accept="image/*" required />
+            <button type="submit">アップロードして処理</button>
+        </form>
 
-    <p id="status-message"></p>
-    <div id="image-preview"></div>
-    <div id="journal-table"></div>
+        <div id="image-preview"></div>
+        <p id="status-message"></p>
+        <div id="journal-table"></div>
+    </main>
+    <div class="clear-btn-container">
+        <a href="https://journal-entry-app.onrender.com" id="clear-btn">クリア</a>
+    </div>
 
-    <script>
-        document.getElementById('upload-form').addEventListener('submit', async function (e) {
-            e.preventDefault();
+<footer>
+    <br>
+    <p>&copy;&nbsp;YUSUKE&nbsp;KOMORI</p>
+</footer>
 
-            const fileInput = document.getElementById('image-file');
-            const formData = new FormData();
-            const file = fileInput.files[0];
-            formData.append('file', file);
+<script>
+    document.getElementById('upload-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-            // 状態表示
-            const statusMessage = document.getElementById('status-message');
-            statusMessage.textContent = '画像を分析しています...しばらくお待ちください...';
+        const fileInput = document.getElementById('image-file');
+        const formData = new FormData();
+        const file = fileInput.files[0];
+        formData.append('file', file);
 
-            // 画像プレビュー
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー"`;
-            };
-            reader.readAsDataURL(file);
+        // 状態表示
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.textContent = '画像を分析しています...しばらくお待ちください...';
 
-            try {
-                const res = await fetch('/convert_and_write', {
-                    method: 'POST',
-                    body: formData
-                });
+        // 画像プレビュー
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー"`;
+        };
+        reader.readAsDataURL(file);
 
-                const data = await res.json();
+        try {
+            const res = await fetch('/convert_and_write', {
+                method: 'POST',
+                body: formData
+            });
 
-                // デバッグ用
-                console.log("サーバーからのレスポンス:", data);
-                if (!data.journal || !data.journal.entries) {
-                    statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
-                    return;
-                }
+            const data = await res.json();
 
-                statusMessage.textContent = '処理が完了しました。スプレッドシートをご確認ください。';
-                
-                // 仕訳結果の整形表示
-                const journal = data.journal;
-                const table = document.createElement('table');
-                table.border = "1";
-                table.style.borderCollapse = "collapse";
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>日付</th>
-                            <th>借方</th>
-                            <th>金額</th>
-                            <th>貸方</th>
-                            <th>金額</th>
-                            <th>摘要</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${journal.entries.map((e, i) => `
-                            <tr>
-                                <td>${i === 0 ? journal.date || '' : ''}</td>
-                                <td>${e.debit}</td>
-                                <td>${e.amount}</td>
-                                <td>${e.credit}</td>
-                                <td>${e.amount}</td>
-                                <td>${i === 0 ? journal.summary || '' : ''}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                `;
-                document.getElementById('journal-table').innerHTML = '<h2>📄 仕訳内容</h2>';
-                document.getElementById('journal-table').appendChild(table);
-
-            } catch (error) {
-                statusMessage.textContent = 'エラーが発生しました。';
-                console.error(error);
+            // デバッグ用
+            console.log("サーバーからのレスポンス:", data);
+            if (!data.journal || !data.journal.entries) {
+                statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
+                return;
             }
-        });
-    </script>
+
+            statusMessage.textContent = '処理が完了しました。スプレッドシートをご確認ください。';
+            
+            // 仕訳結果の整形表示
+            const journal = data.journal;
+            const table = document.createElement('table');
+            table.border = "1";
+            table.style.borderCollapse = "collapse";
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>借方</th>
+                        <th>金額</th>
+                        <th>貸方</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${journal.entries.map((e, i) => `
+                        <tr>
+                            <td>${i === 0 ? journal.date || '' : ''}</td>
+                            <td>${e.debit}</td>
+                            <td>${e.amount}</td>
+                            <td>${e.credit}</td>
+                            <td>${e.amount}</td>
+                            <td>${i === 0 ? journal.summary || '' : ''}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            document.getElementById('journal-table').innerHTML = '<h2>📄 仕訳内容</h2>';
+            document.getElementById('journal-table').appendChild(table);
+
+        } catch (error) {
+            statusMessage.textContent = 'エラーが発生しました。';
+            console.error(error);
+        }
+    });
+</script>
 </body>
 </html>
