@@ -51,7 +51,7 @@ def generate_journal_entries(text: str) -> dict:
 - 取引日付を必ず `date` フィールドに "YYYY-MM-DD" 形式で含めてください。省略しないでください。
 - 金額（amount）は半角数値、カンマは使用しないこと。
 - `entries` の配列に、借方（debit）と貸方（credit）を分けて記述してください。
-- 減価償却費などの金額はシステムが後で計算するため、`amount: 0` で構いません。
+- `"depreciation"`についての金額はシステムが後で計算するため、`amount: 0` で構いません。それ以外は `amount: 0` の出力を禁止。
 
 # 取引タイプ判定：
 以下の type のいずれかを判定し、出力に含めてください。
