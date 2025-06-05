@@ -40,7 +40,7 @@
 
         // 状態表示
         const statusMessage = document.getElementById('status-message');
-        statusMessage.textContent = '画像を分析しています...しばらくお待ちください...  <span class="spinner"></span>';
+        statusMessage.innerHTML = '画像を分析しています...しばらくお待ちください...  <span class="spinner"></span>';
 
         // 画像プレビュー
         const reader = new FileReader();
