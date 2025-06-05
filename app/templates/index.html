@@ -35,7 +35,7 @@
             // 画像プレビュー
             const reader = new FileReader();
             reader.onload = function (e) {
-                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー" style="width: 300px;"`;
+                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー"`;
             };
             reader.readAsDataURL(file);
 

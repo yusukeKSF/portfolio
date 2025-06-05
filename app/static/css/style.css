@@ -41,10 +41,10 @@
         #image-preview {
             margin: 10px auto;
         }
-        /* #image-preview {
-            display: block;
+        #image-preview {
+            /* display: block; */
             width: 300px;
-        } */
+        }
         #journal-table {
             background: #f4f4f4;
             margin: 10px auto;

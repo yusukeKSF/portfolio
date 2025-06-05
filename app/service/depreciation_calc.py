@@ -2,14 +2,11 @@
 # 減価償却費を外部サイトから Seleniumを使って自動取得
 
 import time
-from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
-from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
 
 
 def calculate_depreciation_by_year(
