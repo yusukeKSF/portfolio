@@ -26,7 +26,7 @@
 
 <footer>
     <br>
-    <p>&copy;&nbsp;YUSUKE&nbsp;KOMORI</p>
+    <p>&copy;&nbsp;2025&nbsp;YUSUKE&nbsp;KOMORI</p>
 </footer>
 
 <script>
@@ -45,7 +45,6 @@
         // 画像プレビュー
         const reader = new FileReader();
         reader.onload = function (e) {
-            console.log("result", e.target.result); 
             document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー" />`;
         };
         reader.readAsDataURL(file);
@@ -65,7 +64,7 @@
                 return;
             }
 
-            statusMessage.textContent = '処理が完了しました。スプレッドシートをご確認ください。';
+            statusMessage.innerHTML = '処理が完了しました。スプレッドシートをご確認ください。<br><a href="https://docs.google.com/spreadsheets/d/1zbtthNFP7YUkKmMoawS21RRqzVp-pgd9L20_pdfeA2Y/edit?gid=0#gid=0" target=blank>スプレッドシートを確認する</a>';
             
             // 仕訳結果の整形表示
             const journal = data.journal;
@@ -100,7 +99,7 @@
             document.getElementById('journal-table').appendChild(table);
 
         } catch (error) {
-            statusMessage.textContent = 'エラーが発生しました。';
+            statusMessage.textContent = 'エラーが発生しました。 リロードしてください。';
             console.error(error);
         }
     });
