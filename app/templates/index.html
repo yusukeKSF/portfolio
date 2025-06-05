@@ -30,12 +30,12 @@
 
             // 状態表示
             const statusMessage = document.getElementById('status-message');
-            statusMessage.textContent = '画像を分析しています...';
+            statusMessage.textContent = '画像を分析しています...しばらくお待ちください...';
 
             // 画像プレビュー
             const reader = new FileReader();
             reader.onload = function (e) {
-                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー"`;
+                document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="プレビュー" style="display: block; width: 300px;"`;
             };
             reader.readAsDataURL(file);
 
@@ -57,7 +57,12 @@
                 statusMessage.textContent = '処理が完了しました。';
                 
                 // 仕訳結果の整形表示
-                const journal = data.journal;
+                // const journal = data.journal;
+                const journal = {
+                    date: data.date,
+                    summary: data.summary,
+                    entries: data.entries
+                };
                 const table = document.createElement('table');
                 table.border = "1";
                 table.style.borderCollapse = "collapse";

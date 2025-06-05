@@ -29,7 +29,7 @@
             white-space: nowrap;
         }
         .thumbnail {
-            max-width: 500px;
+            width: 500px;
             height: 150px;
             margin-bottom: 30px;
         }
@@ -41,10 +41,10 @@
         #image-preview {
             margin: 10px auto;
         }
-        #image-preview {
+        /* #image-preview {
             display: block;
-            max-width: 300px;
-        }
+            width: 300px;
+        } */
         #journal-table {
             background: #f4f4f4;
             margin: 10px auto;
@@ -58,5 +58,8 @@
             }
             h1 {
                 font-size: 1.5rem;
+            }
+            .thumbnail {
+                max-width: 300px;
             }
         }

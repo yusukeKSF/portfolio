@@ -305,10 +305,17 @@ def convert_and_write_from_text(text: str):
     )
 
     # ✅ enriched を返す
+    # return {
+    #     "status": "success",
+    #     "message": "スプレッドシートに書き込みました",
+    #     "journal": enriched
+    # }
     return {
-        "status": "success",
-        "message": "スプレッドシートに書き込みました",
-        "journal": enriched
+    "status": "success",
+    "message": "スプレッドシートに書き込みました",
+    "date": date,
+    "summary": enriched["summary"],
+    "entries": enriched["entries"]
     }
 
 router = APIRouter()
