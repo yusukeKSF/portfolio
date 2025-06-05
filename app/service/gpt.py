@@ -51,7 +51,8 @@ def generate_journal_entries(text: str) -> dict:
 - 取引日付を必ず `date` フィールドに "YYYY-MM-DD" 形式で含めてください。省略しないでください。
 - 金額（amount）は半角数値、カンマは使用しないこと。
 - `entries` の配列に、借方（debit）と貸方（credit）を分けて記述してください。
-- `"depreciation"`についての金額はシステムが後で計算するため、`amount: 0` で構いません。それ以外は `amount: 0` の出力を禁止。
+- `"depreciation"`についての金額はシステムが後で計算するため、`amount: 0` で構いません。
+- 減価償却取引（type: "depreciation"）を除き、`amount: 0` の出力は禁止です。
 
 # 取引タイプ判定：
 以下の type のいずれかを判定し、出力に含めてください。
@@ -68,20 +69,27 @@ def generate_journal_entries(text: str) -> dict:
 - 「手形を受け取った」「手形で受け取った」は "受取手形" を使用
 - 「手形で支払った」「手形で支払う」は "支払手形" を使用
 - 「手形受取」「手形支払」などの曖昧な語は使わないでください
-
-# 補足ルール：
-
-- 「〇〇を仕入れた」→ type: `"purchase"`、debit: `"仕入"`
-- 「〇〇を購入した」→ contextに応じて `"supplies_purchase"` か `"asset_purchase"` に分類
-- 「掛け払い」「未払い」等があれば：
-- purchase系は credit: `"買掛金"`（それ以外は `"未払金"`）
-- sales系は credit: `"売掛金"`
 - 支払・受取方法の記載がない場合、現金処理とする
 - 手形の受け取りは debit: `"受取手形"`
 - 手形による支払いは credit:`"支払手形"`
 - 減価償却時は debit: `"減価償却費"`, credit: `"減価償却累計額"`
-- 売上取引（type: "sales"）では、「売上」は必ず `credit_entries` に含めてください
+- 売上取引（type: "sales"）では、「売上」は基本 `credit_entries` に含めてください
 - 金額が20万円を超える`"supplies_purchase"`の場合は、`"備品"`に分類する
+- 減価償却取引（type: "depreciation"）を除き、`amount: 0` の出力は禁止です。
+
+# 複数支払手段の処理ルール：
+- 複数の借方・貸方が存在する場合でも、金額を正確に分割し、重複なく記帳してください
+- 代金の一部または全額に支払手段・受取方法の明記がある場合、それに従って処理する。
+- 減価償却取引（type: "depreciation"）を除き、`amount: 0` の出力は禁止です。
+
+# 補足ルール：
+
+- 「〇〇を仕入れた」→ type: `"purchase"`、debit: `"仕入"`
+- 「`"商品"`を購入した」→ type: `"purchase"`、debit: `"仕入"`
+- 「〇〇を購入した」→ contextに応じて `"supplies_purchase"` か `"asset_purchase"` に分類
+- 「掛け払い」「未払い」等があれば：
+    - purchase系は credit: `"買掛金"`（それ以外は `"未払金"`）
+    - sales系は credit: `"売掛金"` （それ以外は `"未収入金"`）
 
 ---
 
@@ -131,6 +139,26 @@ def generate_journal_entries(text: str) -> dict:
 注意事項：
 - `calc_closing_date` は資産を取得した初年度の決算日でフォームに入力する決算日です（通常は取得日の年 + 会計年度末）。
 - `target_year` はテーブルから減価償却費を取得したい年度の決算日です（例：2025-03-31）。
+---
+
+# 具体例：売上取引で支払手段が複数ある場合
+"例）商品を20万円で売上げ、半額を現金で、半額を受取手形で受け取った場合："
+
+{{
+  "type": "sales",
+  "date": "2025-06-04",
+  "summary": "商品を田中商店に売り上げ",
+  "customer": "田中商店",
+  "amount": 200000,
+  "debit_entries": [
+    {{ "account": "現金", "amount": 100000 }},
+    {{ "account": "受取手形", "amount": 100000 }}
+  ],
+  "credit_entries": [
+    {{ "account": "売上", "amount": 200000 }}
+  ]
+}}
+
 ---
 
 以下が対象の取引文です：
@@ -209,7 +237,7 @@ def process_gpt_and_enrich(gpt_data: dict, ocr_text: str) -> dict:
         except Exception as e:
             print(f"❌ 減価償却費取得エラー: {e}")
             dep = None
-
+            
         # 資産名付き減価償却累計額として帳簿を記録する
         credit_title = f"{gpt_data.get('asset_name', '')}減価償却累計額"
         gpt_data["entries"] = [{
@@ -305,11 +333,6 @@ def convert_and_write_from_text(text: str):
     )
 
     # ✅ enriched を返す
-    # return {
-    #     "status": "success",
-    #     "message": "スプレッドシートに書き込みました",
-    #     "journal": enriched
-    # }
     return {
         "status": "success",
         "message": "スプレッドシートに書き込みました",

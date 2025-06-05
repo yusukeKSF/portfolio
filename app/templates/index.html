@@ -54,15 +54,10 @@
                     return;
                 }
 
-                statusMessage.textContent = '処理が完了しました。';
+                statusMessage.textContent = '処理が完了しました。スプレッドシートをご確認ください。';
                 
                 // 仕訳結果の整形表示
                 const journal = data.journal;
-                // const journal = {
-                //     date: data.date,
-                //     summary: data.summary,
-                //     entries: data.entries
-                // };
                 const table = document.createElement('table');
                 table.border = "1";
                 table.style.borderCollapse = "collapse";
