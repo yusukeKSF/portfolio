@@ -15,6 +15,9 @@ from datetime import datetime
 import re
 # from collections import defaultdict
 
+# メモリ使用量間使用
+from app.monitor import monitor_memory
+
 
 env = os.getenv("ENV", "production")
 dotenv_file = f".env.{env}"
@@ -40,6 +43,7 @@ class WriteRequest(BaseModel):
     entries: list[dict]
 
 
+@monitor_memory("GPTに問い合わせ")
 def generate_journal_entries(text: str) -> dict:
     print("🧠 GPTに問い合わせ中...")
     prompt = f"""

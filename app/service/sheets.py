@@ -9,6 +9,8 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Python 3.9 以上対応
+# メモリ使用量間使用
+from app.monitor import monitor_memory
 
 # 環境ごとの .env ファイルを読み込む（ローカル用）
 env = os.getenv("ENV", "production")
@@ -31,6 +33,7 @@ def get_credentials():
         creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         return Credentials.from_service_account_file(creds_path, scopes=SCOPES)
 
+@monitor_memory("スプレッドシートへの書き込み")
 def write_entries_to_sheet(entries: List[dict], date: str, summary: str, bordered=False):
     print("📤 Google Sheetsへ書き込み開始", flush=True)
     

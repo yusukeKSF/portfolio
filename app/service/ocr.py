@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 # デプロイようにAPIの読み込みについて追加修正
 import tempfile
+# メモリ使用量間使用
+from app.monitor import monitor_memory
 
 
 # 環境変数に保存されたJSON文字列を取得
@@ -22,6 +24,7 @@ if credentials_json:
 
 client = vision.ImageAnnotatorClient()
 
+@monitor_memory("OCR処理")
 def extract_text_from_frame(frame: np.ndarray) -> str:
     # OpenCV画像をJPEGに変換
     _, encoded_image = cv2.imencode('.jpg', frame)

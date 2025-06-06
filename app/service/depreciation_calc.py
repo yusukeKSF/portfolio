@@ -7,8 +7,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
+# メモリ使用量間使用
+from app.monitor import monitor_memory
 
-
+@monitor_memory("Seleniumによる減価償却費の取得")
 def calculate_depreciation_by_year(
     starting_date: str,
     calc_closing_date: str,
