@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, UploadFile, File, Request
 from app.main import limiter
+from app.limiter import limiter
 import shutil
 import tempfile
 from app.service.ocr import extract_text_from_image

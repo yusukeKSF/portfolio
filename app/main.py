@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 # アクセス回数を制限
 from slowapi import Limiter
+from app.limiter import limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
