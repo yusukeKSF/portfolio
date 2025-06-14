@@ -19,14 +19,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 # アクセス回数を制限
-from slowapi import Limiter
-from app.limiter import limiter
-from slowapi.util import get_remote_address
+from app.extensions.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
-
-
-limiter = Limiter(key_func=get_remote_address)
 
 
 app = FastAPI()

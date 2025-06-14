@@ -1,10 +1,8 @@
 #  app/routes/camera_ocr_router.py
 
 from fastapi import APIRouter, UploadFile, File, Request
-from app.main import limiter
-from app.limiter import limiter
-import shutil
-import tempfile
+from app.extensions.limiter import limiter
+import shutil, tempfile
 from app.service.ocr import extract_text_from_image
 from app.service.gpt import convert_and_write_from_text 
 from fastapi import HTTPException
