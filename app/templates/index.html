@@ -43,6 +43,20 @@
         const preview = document.getElementById('image-preview');
         statusMessage.innerHTML = '画像を分析しています...しばらくお待ちください...  <span class="spinner"></span>';
 
+        // ✅ タイマー処理スタート
+        let timer1 = setTimeout(() => {
+            statusMessage.innerHTML = '文字の読み取りを行なっています...  <span class="spinner"></span>';
+        }, 30_000); // 30秒後
+
+        let timer2 = setTimeout(() => {
+            statusMessage.innerHTML = '🤖 GPTが仕訳を生成しています...  <span class="spinner"></span>';
+        }, 60_000); // 60秒後
+
+        let timer3 = setTimeout(() => {
+            statusMessage.innerHTML = '⏳ 処理には2分〜5分かかる場合があります。しばらくお待ちください...  <span class="spinner"></span>';
+        }, 90_000); // 60秒後
+
+
         // 画像プレビュー
         const reader = new FileReader();
         reader.onload = function (e) {
@@ -64,22 +78,19 @@
         //         statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
         //         return;
         //     }
-
         try {
-            // ✅ ステップ②：OCR開始
-            statusMessage.innerHTML = '📷 OCRで文字を読み取っています...  <span class="spinner"></span>';
-
             const res = await fetch('/convert_and_write', {
                 method: 'POST',
                 body: formData
             });
 
-            // ✅ ステップ③：レスポンス受信 → GPT処理中（バックエンド側でやってるが表示だけ反映）
-            statusMessage.innerHTML = '🤖 GPTが仕訳を生成しています...  <span class="spinner"></span>';
-
             const data = await res.json();
 
-            // ✅ ステップ④：データチェック
+            // ✅ タイマー停止
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
+
             if (!data.journal || !data.journal.entries) {
                 statusMessage.textContent = '⚠️ サーバーからのデータ形式が不正です。';
                 return;
@@ -121,6 +132,9 @@
             document.getElementById('journal-table').appendChild(table);
 
         } catch (error) {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
             statusMessage.textContent = 'エラーが発生しました。 リロードしてください。';
             console.error(error);
         }
