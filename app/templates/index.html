@@ -65,28 +65,28 @@
         //         return;
         //     }
 
-            try {
-                // ✅ ステップ②：OCR開始
-                statusMessage.innerHTML = '📷 OCRで文字を読み取っています...  <span class="spinner"></span>';
+        try {
+            // ✅ ステップ②：OCR開始
+            statusMessage.innerHTML = '📷 OCRで文字を読み取っています...  <span class="spinner"></span>';
 
-                const res = await fetch('/convert_and_write', {
-                    method: 'POST',
-                    body: formData
-                });
+            const res = await fetch('/convert_and_write', {
+                method: 'POST',
+                body: formData
+            });
 
-                // ✅ ステップ③：レスポンス受信 → GPT処理中（バックエンド側でやってるが表示だけ反映）
-                statusMessage.innerHTML = '🤖 GPTが仕訳を生成しています...  <span class="spinner"></span>';
+            // ✅ ステップ③：レスポンス受信 → GPT処理中（バックエンド側でやってるが表示だけ反映）
+            statusMessage.innerHTML = '🤖 GPTが仕訳を生成しています...  <span class="spinner"></span>';
 
-                const data = await res.json();
+            const data = await res.json();
 
-                // ✅ ステップ④：データチェック
-                if (!data.journal || !data.journal.entries) {
-                    statusMessage.textContent = '⚠️ サーバーからのデータ形式が不正です。';
-                    return;
-                }
+            // ✅ ステップ④：データチェック
+            if (!data.journal || !data.journal.entries) {
+                statusMessage.textContent = '⚠️ サーバーからのデータ形式が不正です。';
+                return;
+            }
 
-                // ✅ ステップ⑤：完了
-                statusMessage.innerHTML = '処理が完了しました。スプレッドシートをご確認ください。<br><a href="https://docs.google.com/spreadsheets/d/1zbtthNFP7YUkKmMoawS21RRqzVp-pgd9L20_pdfeA2Y/edit?gid=0#gid=0" target=blank>スプレッドシートを確認する</a>';
+            // ✅ ステップ⑤：完了
+            statusMessage.innerHTML = '処理が完了しました。スプレッドシートをご確認ください。<br><a href="https://docs.google.com/spreadsheets/d/1zbtthNFP7YUkKmMoawS21RRqzVp-pgd9L20_pdfeA2Y/edit?gid=0#gid=0" target=blank>スプレッドシートを確認する</a>';
             
             // 仕訳結果の整形表示
             const journal = data.journal;
