@@ -1,7 +1,6 @@
 #  app/routes/camera_ocr_router.py
 
 from fastapi import APIRouter, UploadFile, File, Request
-from slowapi.extension import LimiterRoute
 from app.main import limiter
 import shutil
 import tempfile
@@ -13,7 +12,7 @@ MAX_FILE_SIZE_MB = 8  # 上限サイズ（MB）
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 
-router = APIRouter(route_class=LimiterRoute)
+router = APIRouter()
 
 
 @router.post("/convert_and_write")
