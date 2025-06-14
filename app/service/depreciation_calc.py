@@ -33,6 +33,7 @@ def calculate_depreciation_by_year(
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
 
+        options.binary_location = "/usr/bin/chromium"
         driver = webdriver.Chrome(options=options)
         driver.get("https://stylefunc287.xsrv.jp/php/dep.php")
 
