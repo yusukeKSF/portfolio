@@ -1,7 +1,6 @@
 ### app/main.py
 
-from fastapi import FastAPI, UploadFile, File
-from fastapi import Body
+from fastapi import FastAPI, UploadFile, File, Request
 from app.service.ocr import extract_text_from_image
 from app.service.gpt import generate_journal_entries
 from app.service.sheets import write_entries_to_sheet
@@ -12,18 +11,33 @@ from app.service import gpt
 from app.routes import camera_ocr_router
 # from app.routes import upload_and_process_router
 from app.routes.camera_ocr_router import router as camera_router
-# ✅ main.py の修正
 from app.routes.camera_ocr_router import process_ocr_and_send
 
 # UI 実装ステップ 
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from app.routes import camera_ocr_router
 
+# アクセス回数を制限
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
+
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 app = FastAPI()
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": "⚠️ アクセスが制限を超えました。しばらくしてから再度お試しください。"}
+    )
 
 # 静的ファイルのマウント
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

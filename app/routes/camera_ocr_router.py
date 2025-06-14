@@ -1,17 +1,36 @@
 #  app/routes/camera_ocr_router.py
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Request
+from slowapi.extension import LimiterRoute
+from app.main import limiter
 import shutil
 import tempfile
 from app.service.ocr import extract_text_from_image
 from app.service.gpt import convert_and_write_from_text 
+from fastapi import HTTPException
+
+MAX_FILE_SIZE_MB = 8  # 上限サイズ（MB）
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 
-router = APIRouter()
+router = APIRouter(route_class=LimiterRoute)
 
 
 @router.post("/convert_and_write")
-async def process_ocr_and_send(file: UploadFile = File(...)):
+@limiter.limit("5/minute")  # IP単位で1分間に最大5リクエスト
+async def process_ocr_and_send(request: Request, file: UploadFile = File(...)):
+    
+    # ✅ ファイルサイズをチェック
+    file.file.seek(0, 2)  # ファイルの終端へ移動
+    file_size = file.file.tell()
+    file.file.seek(0)  # 読み込み位置を先頭に戻す
+
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"ファイルサイズが大きすぎます。{MAX_FILE_SIZE_MB}MB以下にしてください。"
+        )
+    
     # ✅ 一時ファイルに保存
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
         shutil.copyfileobj(file.file, temp_file)
