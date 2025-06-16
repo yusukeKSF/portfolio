@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app
 
 # ポート（FastAPI用）
-EXPOSE 8000
+EXPOSE 10000
 
 # 起動コマンド（例: main.py が FastAPIアプリの場合）
 CMD ["python", "main.py"]
