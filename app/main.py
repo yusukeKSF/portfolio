@@ -64,6 +64,13 @@ class WriteRequest(BaseModel):
     date: str
     summary: str
     entries: list[dict]
+    
+    
+
+# UIルート デプロイ用
+@app.get("/")
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/ocr")
 async def ocr_endpoint(file: UploadFile = File(...)):
@@ -91,8 +98,4 @@ async def upload_and_process(file: UploadFile = File(...)):
     # UploadFile をそのまま camera_ocr_router に渡して処理
     return await process_ocr_and_send(file)
 
-# UIルート デプロイ用
-@app.get("/")
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 

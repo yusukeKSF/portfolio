@@ -7,7 +7,7 @@ from app.service.ocr import extract_text_from_image
 from app.service.gpt import convert_and_write_from_text 
 from fastapi import HTTPException
 
-MAX_FILE_SIZE_MB = 8  # 上限サイズ（MB）
+MAX_FILE_SIZE_MB = 5  # 上限サイズ（MB）
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 
