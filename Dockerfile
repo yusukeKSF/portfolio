@@ -2,11 +2,30 @@ FROM python:3.10-slim
 
 # パッケージインストール
 RUN apt-get update && apt-get install -y \
-    wget curl unzip gnupg ca-certificates \
-    fonts-liberation libnss3 libatk1.0-0 libatk-bridge2.0-0 \
-    libcups2 libxss1 libxcomposite1 libxcursor1 libxdamage1 libxrandr2 \
-    libgbm1 libasound2 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
-    --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+    wget \
+    curl \
+    unzip \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxss1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libpango-1.0-0 \
+    libgtk-3-0 \
+    libu2f-udev \
+    lsb-release \
+    --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ✅ Chrome v113（バージョン固定）
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
