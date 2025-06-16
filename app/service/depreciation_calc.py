@@ -19,7 +19,8 @@ def calculate_depreciation_by_year(
     life: int,
     target_year: str,
     current_volume: float = None,
-    total_volume: float = None
+    total_volume: float = None,
+    remaining_value : float = None
 ) -> float | None:
     """
     指定された条件に基づいて、Selenium経由で減価償却費を自動取得する。
@@ -49,6 +50,7 @@ def calculate_depreciation_by_year(
         if method == "生産高比例法":
             driver.find_element(By.ID, "currentVolume").send_keys(str(current_volume or ""))
             driver.find_element(By.ID, "totalVolume").send_keys(str(total_volume or ""))
+            driver.find_element(By.ID, "remaining_value").send_keys(str(remaining_value or ""))
 
         driver.find_element(By.ID, "submit").click()
         time.sleep(2)
