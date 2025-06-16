@@ -1,67 +1,57 @@
+# ベースイメージ
 FROM python:3.10-slim
+
+# 環境変数（Chromeの警告抑制）
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 必要なパッケージのインストール
 RUN apt-get update && apt-get install -y \
     wget \
-    curl \
     unzip \
+    curl \
     gnupg \
-    ca-certificates \
+    jq \
     fonts-liberation \
     libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
     libxss1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libx11-xcb1 \
     libxcomposite1 \
     libxcursor1 \
     libxdamage1 \
     libxrandr2 \
     libgbm1 \
-    libasound2 \
-    libpangocairo-1.0-0 \
-    libpango-1.0-0 \
-    libgtk-3-0 \
-    libu2f-udev \
-    lsb-release \
-    jq \
+    libdrm2 \
     --no-install-recommends && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
-# ✅ Google Chrome のリポジトリ追加
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google.gpg && \
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
-    apt-get update && \
-    apt-get install -y google-chrome-stable
-
-
-# 必要なツールのインストール
-RUN apt-get update && apt-get install -y \
-    curl unzip gnupg jq wget ca-certificates
-
-# Google Chrome のインストール
+# ✅ Google Chrome 最新版をインストール
 RUN wget -O chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./chrome.deb && \
-    rm chrome.deb
+    apt-get update && apt install -y ./chrome.deb && rm chrome.deb
 
-# Chrome バージョンからメジャーバージョンを抽出し、それに合う Chromedriver をインストール
+# ✅ Chrome のバージョンを取得して一致する ChromeDriver を自動取得
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') && \
-    MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1) && \
+    echo "Detected Chrome version: $CHROME_VERSION" && \
     DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
-        | jq -r --arg ver "$MAJOR_VERSION" '.channels.Stable.downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
-    echo "✅ Downloading chromedriver from $DRIVER_URL" && \
+    | jq -r --arg ver "$CHROME_VERSION" '.versions[] | select(.version == $ver) | .downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
+    echo "Downloading ChromeDriver from $DRIVER_URL" && \
     wget -O /tmp/chromedriver.zip "$DRIVER_URL" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
 
-# 作業ディレクトリ・アプリケーションのコピー
+# Python依存パッケージインストール
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# アプリケーションのコピー
 COPY . .
 
-# ポートと実行コマンド
-ENV PORT=8000
+# ポート指定（Renderでは 8000 が必要）
+EXPOSE 8000
+
+# アプリの起動コマンド（適宜変更）
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
