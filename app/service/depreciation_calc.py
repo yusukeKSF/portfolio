@@ -34,9 +34,8 @@ def calculate_depreciation_by_year(
         options.add_argument("--headless") #コメントアウトすることで開発段階にGUI確認を可能にすることができる 
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        options.binary_location = "/usr/bin/chromium"
-        # driver = webdriver.Chrome(options=options)
-        # driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options)
+        options.binary_location = "/usr/bin/google-chrome" 
+
         # ✅ Serviceを使ってdriverのパスを指定
         service = Service(executable_path="/usr/bin/chromedriver")
         # ✅ driverインスタンス作成（executable_pathは使わない）
