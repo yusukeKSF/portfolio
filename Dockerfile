@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-# パッケージインストール
+# 必要なパッケージのインストール
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -24,27 +24,33 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libu2f-udev \
     lsb-release \
+    jq \
     --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ✅ Chrome v113（バージョン固定）
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb
+# ✅ Google Chrome のリポジトリ追加
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google.gpg && \
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable
 
-# ✅ ChromeDriver v113（バージョン固定）
-RUN wget -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/113.0.5672.63/linux64/chromedriver-linux64.zip && \
+# ✅ Chrome のバージョンに対応した ChromeDriver を自動で取得
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1) && \
+    MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1) && \
+    DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | \
+        jq -r --arg ver "$MAJOR_VERSION" '.channels.Stable.downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
+    wget -O /tmp/chromedriver.zip "$DRIVER_URL" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
 
-# 作業ディレクトリと依存パッケージ
+# 作業ディレクトリ・アプリケーションのコピー
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# アプリケーションコード
 COPY . .
 
+# ポートと実行コマンド
 ENV PORT=8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
