@@ -16,6 +16,5 @@ pillow
 numpy>=2.2.5
 watchdog
 Jinja2
-chromedriver-binary==113.0.5672.63.0
 psutil
 slowapi

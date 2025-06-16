@@ -6,6 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 # メモリ使用量間使用
 from app.monitor import monitor_memory
@@ -35,7 +36,12 @@ def calculate_depreciation_by_year(
         options.add_argument('--disable-dev-shm-usage')
         options.binary_location = "/usr/bin/chromium"
         # driver = webdriver.Chrome(options=options)
-        driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options)
+        # driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options)
+        # ✅ Serviceを使ってdriverのパスを指定
+        service = Service(executable_path="/usr/bin/chromedriver")
+        # ✅ driverインスタンス作成（executable_pathは使わない）
+        driver = webdriver.Chrome(service=service, options=options)
+        
         driver.get("https://stylefunc287.xsrv.jp/php/dep.php")
 
         # 入力フォームの要素取得と入力
