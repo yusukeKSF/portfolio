@@ -22,22 +22,22 @@ from fastapi.staticfiles import StaticFiles
 from app.extensions.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
+from app.service.depreciation_calc import calculate_depreciation_by_year
 
 # デバッグ用
-import os
-print("🧪 chromedriver path:", os.path.exists("/usr/local/bin/chromedriver"))
-print("🧪 chrome path:", os.path.exists("/usr/bin/google-chrome"))
+# import os
+# print("🧪 chromedriver path:", os.path.exists("/usr/local/bin/chromedriver"))
+# print("🧪 chrome path:", os.path.exists("/usr/bin/google-chrome"))
+# print("🧪 chromedriver exists:", os.path.exists("/usr/local/bin/chromedriver"))
+# print("🧪 google-chrome exists:", os.path.exists("/usr/bin/google-chrome"))
 
-print("🧪 chromedriver exists:", os.path.exists("/usr/local/bin/chromedriver"))
-print("🧪 google-chrome exists:", os.path.exists("/usr/bin/google-chrome"))
 
-
-import subprocess
-try:
-    version = subprocess.check_output(["/usr/local/bin/chromedriver", "--version"])
-    print("🧪 chromedriver version:", version.decode())
-except Exception as e:
-    print("❌ chromedriver version check failed:", e)
+# import subprocess
+# try:
+#     version = subprocess.check_output(["/usr/local/bin/chromedriver", "--version"])
+#     print("🧪 chromedriver version:", version.decode())
+# except Exception as e:
+#     print("❌ chromedriver version check failed:", e)
 
 
 
@@ -88,6 +88,7 @@ class WriteRequest(BaseModel):
 # UIルート デプロイ用
 @app.get("/")
 async def read_root(request: Request):
+    print("✅ / accessed. Rendering template...")
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/ocr")
@@ -116,4 +117,9 @@ async def upload_and_process(file: UploadFile = File(...)):
     # UploadFile をそのまま camera_ocr_router に渡して処理
     return await process_ocr_and_send(file)
 
-
+@app.get("/test-dep")
+async def test_depreciation():
+    print("🚀 減価償却取得テスト開始")
+    value = calculate_depreciation_by_year(...)  # パラメータを仮で埋める
+    print("✅ 減価償却取得結果:", value)
+    return {"depreciation": value}
