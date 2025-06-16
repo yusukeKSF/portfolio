@@ -78,4 +78,4 @@ def calculate_depreciation_by_year(
 
     except Exception as e:
         print(f"❌ 減価償却費取得エラー: {e}")
-        return None
+        raise
