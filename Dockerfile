@@ -36,11 +36,12 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get install -y google-chrome-stable
 
 # ✅ Chrome のバージョンに対応した ChromeDriver を自動で取得
-RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1) && \
-    MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1) && \
-    DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | \
-        jq -r --arg ver "$MAJOR_VERSION" '.channels.Stable.downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
-    wget -O /tmp/chromedriver.zip "$DRIVER_URL" && \
+# Chrome のバージョン確認
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') && \
+    DRIVER_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
+        | jq -r --arg ver "$CHROME_VERSION" '.versions[] | select(.version == $ver) | .downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
+    echo "Downloading chromedriver from $DRIVER_VERSION" && \
+    wget -O /tmp/chromedriver.zip "$DRIVER_VERSION" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
