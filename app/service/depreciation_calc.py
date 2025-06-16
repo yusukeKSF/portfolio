@@ -37,9 +37,13 @@ def calculate_depreciation_by_year(
         options.binary_location = "/usr/bin/google-chrome" 
 
         # ✅ Serviceを使ってdriverのパスを指定
-        service = Service(executable_path="/usr/bin/chromedriver")
+        service = Service(executable_path="/usr/local/bin/chromedriver")
+        
+        print("🌟 Selenium 起動前")
         # ✅ driverインスタンス作成（executable_pathは使わない）
         driver = webdriver.Chrome(service=service, options=options)
+        
+        print("✅ Selenium 起動成功")
         
         driver.get("https://stylefunc287.xsrv.jp/php/dep.php")
 
