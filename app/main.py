@@ -28,6 +28,10 @@ import os
 print("🧪 chromedriver path:", os.path.exists("/usr/local/bin/chromedriver"))
 print("🧪 chrome path:", os.path.exists("/usr/bin/google-chrome"))
 
+print("🧪 chromedriver exists:", os.path.exists("/usr/local/bin/chromedriver"))
+print("🧪 google-chrome exists:", os.path.exists("/usr/bin/google-chrome"))
+
+
 import subprocess
 try:
     version = subprocess.check_output(["/usr/local/bin/chromedriver", "--version"])

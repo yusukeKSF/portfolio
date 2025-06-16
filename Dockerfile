@@ -1,12 +1,12 @@
 FROM python:3.10-slim
 
-# 基本パッケージと依存ライブラリをインストール
+# 基本パッケージ + 依存のインストール
 RUN apt-get update && apt-get install -y \
     wget \
-    curl \
     unzip \
+    curl \
     gnupg \
-    tesseract-ocr \
+    ca-certificates \
     fonts-liberation \
     libglib2.0-0 \
     libnss3 \
@@ -23,25 +23,26 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgl1 \
     ffmpeg \
+    tesseract-ocr \
     xdg-utils \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
-# ✅ Google Chrome をインストール（安定版）
+# ✅ Google Chrome の安定版をインストール
 RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
     apt-get update && apt-get install -y google-chrome-stable
 
-# ✅ ChromeDriver を Chrome のバージョンに合わせてダウンロード
+# ✅ ChromeDriver のバージョンを Chrome に合わせて取得
 RUN CHROME_VERSION=$(google-chrome-stable --version | grep -oP '[0-9.]+' | head -1 | cut -d '.' -f 1) && \
-    DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" | \
-    grep -A 20 "\"version\": \"$CHROME_VERSION" | grep "linux64" | grep "chromedriver" | head -1 | cut -d '"' -f 4) && \
-    wget -O /tmp/chromedriver.zip "$DRIVER_VERSION" && \
+    DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | \
+      grep -A 20 "\"version\": \"$CHROME_VERSION" | grep "linux64" | grep "chromedriver" | head -1 | cut -d '"' -f 4) && \
+    wget -O /tmp/chromedriver.zip "$DRIVER_URL" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
 
-# アプリケーションのコピーと依存パッケージのインストール
+# アプリの準備
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
