@@ -2,21 +2,22 @@ FROM python:3.10-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 🧰 必要パッケージのインストール
+# 🧰 基本パッケージ + Google Chromeに必要な依存も含めてインストール
 RUN apt-get update && apt-get install -y \
     wget curl unzip gnupg jq \
     libnss3 libatk-bridge2.0-0 libxss1 libasound2 libgtk-3-0 \
     libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libdrm2 \
-    fonts-liberation \
+    libvulkan1 xdg-utils fonts-liberation \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
-# ✅ 最新のGoogle Chromeの安定版をインストール
+# ✅ Google Chromeインストール（依存パッケージが入ったのでOK）
 RUN curl -O https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get update && \
     apt-get install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb
 
-# ✅ Chromeのバージョンを取得して、それに合うChromeDriverをダウンロード
+# ✅ Chromeのバージョン検出とChromeDriver自動インストール
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') && \
     echo "🌐 Installed Chrome version: $CHROME_VERSION" && \
     DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
@@ -27,7 +28,7 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') &&
     chmod +x /usr/local/bin/chromedriver && \
     rm -rf /tmp/chromedriver.zip
 
-# 🐍 Python依存のインストール
+# 🐍 Pythonパッケージのセットアップ
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
