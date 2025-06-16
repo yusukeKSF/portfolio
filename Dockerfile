@@ -35,17 +35,27 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y google-chrome-stable
 
-# Chromeと対応するChromedriverを取得するための設定
-RUN apt-get update && apt-get install -y curl unzip gnupg jq wget && \
-    CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') && \
+
+# 必要なツールのインストール
+RUN apt-get update && apt-get install -y \
+    curl unzip gnupg jq wget ca-certificates
+
+# Google Chrome のインストール
+RUN wget -O chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt install -y ./chrome.deb && \
+    rm chrome.deb
+
+# Chrome バージョンからメジャーバージョンを抽出し、それに合う Chromedriver をインストール
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') && \
     MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1) && \
-    DRIVER_URL=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
+    DRIVER_URL=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
         | jq -r --arg ver "$MAJOR_VERSION" '.channels.Stable.downloads.chromedriver[] | select(.platform == "linux64") | .url') && \
     echo "✅ Downloading chromedriver from $DRIVER_URL" && \
     wget -O /tmp/chromedriver.zip "$DRIVER_URL" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
+
 # 作業ディレクトリ・アプリケーションのコピー
 WORKDIR /app
 COPY requirements.txt .
