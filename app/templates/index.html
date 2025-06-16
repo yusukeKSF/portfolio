@@ -38,6 +38,12 @@
         const file = fileInput.files[0];
         formData.append('file', file);
 
+        //　送信前にがぞおうサイズを制限
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            alert("ファイルサイズが大きすぎます（最大10MB）");
+            return;
+        }
+
         // 状態表示
         const statusMessage = document.getElementById('status-message');
         const preview = document.getElementById('image-preview');
@@ -64,20 +70,6 @@
         };
         reader.readAsDataURL(file);
 
-        // try {
-        //     const res = await fetch('/convert_and_write', {
-        //         method: 'POST',
-        //         body: formData
-        //     });
-
-        //     const data = await res.json();
-
-        //     // デバッグ用
-        //     console.log("サーバーからのレスポンス:", data);
-        //     if (!data.journal || !data.journal.entries) {
-        //         statusMessage.textContent = 'サーバーからのデータ形式が不正です。';
-        //         return;
-        //     }
         try {
             const res = await fetch('/convert_and_write', {
                 method: 'POST',
@@ -91,6 +83,8 @@
             clearTimeout(timer2);
             clearTimeout(timer3);
 
+            // デバッグ用
+            console.log("サーバーからのレスポンス:", data);
             if (!data.journal || !data.journal.entries) {
                 statusMessage.textContent = '⚠️ サーバーからのデータ形式が不正です。';
                 return;
