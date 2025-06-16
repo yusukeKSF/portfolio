@@ -23,6 +23,20 @@ from app.extensions.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
+# デバッグ用
+import os
+print("🧪 chromedriver path:", os.path.exists("/usr/local/bin/chromedriver"))
+print("🧪 chrome path:", os.path.exists("/usr/bin/google-chrome"))
+
+import subprocess
+try:
+    version = subprocess.check_output(["/usr/local/bin/chromedriver", "--version"])
+    print("🧪 chromedriver version:", version.decode())
+except Exception as e:
+    print("❌ chromedriver version check failed:", e)
+
+
+
 
 app = FastAPI()
 app.state.limiter = limiter
