@@ -6,9 +6,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     gnupg \
-    ca-certificates \
+    jq \
     fonts-liberation \
-    libappindicator3-1 \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -22,27 +21,27 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
+    libu2f-udev \
+    libvulkan1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Chrome & ChromeDriver を v122 に固定でインストール
-RUN curl -sSL https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/122.0.6261.111/linux64/chrome-linux64.zip -o /tmp/chrome.zip && \
+# ChromeとChromeDriverのインストール（v137.0.7151.70）
+RUN curl -sSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chrome-linux64.zip -o /tmp/chrome.zip && \
     unzip /tmp/chrome.zip -d /opt/ && \
     ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome && \
-    chmod +x /usr/bin/google-chrome && \
-    rm /tmp/chrome.zip
-
-RUN curl -sSL https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/122.0.6261.111/linux64/chromedriver-linux64.zip -o /tmp/chromedriver.zip && \
+    curl -sSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chromedriver-linux64.zip -o /tmp/chromedriver.zip && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
+    rm -rf /tmp/*.zip
 
-# 必要パッケージのインストール（seleniumなど）
+# 作業ディレクトリ
+WORKDIR /app
+
+# Python依存関係
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# アプリをコピー
-COPY . /app
-WORKDIR /app
+# アプリコードの追加
+COPY . .
 
-# 起動コマンド（例）
 CMD ["python", "main.py"]
