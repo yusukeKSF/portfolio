@@ -21,7 +21,7 @@
         <div id="journal-table"></div>
     </main>
     <div class="clear-btn-container">
-        <a href="https://journal-entry-app.onrender.com" id="clear-btn">クリア</a>
+        <a href="https://python-journal-entry.onrender.com/" id="clear-btn">クリア</a>
     </div>
 
 <footer>
@@ -52,15 +52,15 @@
         // ✅ タイマー処理スタート
         let timer1 = setTimeout(() => {
             statusMessage.innerHTML = '文字の読み取りを行なっています...  <span class="spinner"></span>';
-        }, 30_000); // 30秒後
+        }, 25_000); // 25秒後
 
         let timer2 = setTimeout(() => {
             statusMessage.innerHTML = '🤖 GPTが仕訳を生成しています...  <span class="spinner"></span>';
-        }, 60_000); // 60秒後
+        }, 50_000); // 50秒後
 
         let timer3 = setTimeout(() => {
             statusMessage.innerHTML = '⏳ 処理には2分〜5分かかる場合があります。しばらくお待ちください...  <span class="spinner"></span>';
-        }, 90_000); // 60秒後
+        }, 75_000); // 75秒後
 
 
         // 画像プレビュー
