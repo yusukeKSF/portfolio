@@ -40,4 +40,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # FastAPI起動 (必要に応じて uvicorn のオプションを調整)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
