@@ -26,13 +26,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # ChromeとChromeDriverのインストール（v137.0.7151.70）
-RUN curl -sSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chrome-linux64.zip -o /tmp/chrome.zip && \
+RUN curl -fSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chrome-linux64.zip -o /tmp/chrome.zip && \
+    ls -lh /tmp/chrome.zip && \
     unzip /tmp/chrome.zip -d /opt/ && \
     ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome && \
-    curl -sSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chromedriver-linux64.zip -o /tmp/chromedriver.zip && \
+    curl -fSL https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.70/linux64/chromedriver-linux64.zip -o /tmp/chromedriver.zip && \
+    ls -lh /tmp/chromedriver.zip && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm -rf /tmp/*.zip
+
 
 # 作業ディレクトリ
 WORKDIR /app
