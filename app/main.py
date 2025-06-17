@@ -117,16 +117,17 @@ async def upload_and_process(file: UploadFile = File(...)):
     # UploadFile をそのまま camera_ocr_router に渡して処理
     return await process_ocr_and_send(file)
 
-@app.get("/test-dep")
-async def test_depreciation():
-    print("🚀 減価償却取得テスト開始")
-    value = calculate_depreciation_by_year(
-        starting_date="2023-04-01",
-        calc_closing_date="2024-03-31",
-        method="定額法",
-        price=450000,
-        life=5,
-        target_year="2023"
-    )  # パラメータを仮で埋める
-    print("✅ 減価償却取得結果:", value)
-    return {"depreciation": value}
+# テスト、デバッグ用
+# @app.get("/test-dep")
+# async def test_depreciation():
+#     print("🚀 減価償却取得テスト開始")
+#     value = calculate_depreciation_by_year(
+#         starting_date="2023-04-01",
+#         calc_closing_date="2024-03-31",
+#         method="定額法",
+#         price=450000,
+#         life=5,
+#         target_year="2023"
+#     )  # パラメータを仮で埋める
+#     print("✅ 減価償却取得結果:", value)
+#     return {"depreciation": value}
