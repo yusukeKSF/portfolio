@@ -4,7 +4,7 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
@@ -65,16 +65,24 @@ def calculate_depreciation_by_year(
                 driver.find_element(By.ID, "totalVolume").send_keys(str(total_volume or ""))
                 driver.find_element(By.ID, "remaining_value").send_keys(str(remaining_value or ""))
 
-            driver.find_element(By.ID, "submit").click()
-            time.sleep(2)
+            try:
+                driver.find_element(By.ID, "submit").click()
+                # time.sleep(2)
+                # 送信後、結果テーブルの出現を待機（最大10秒）
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.record tr"))
+                )
 
-            rows = driver.find_elements(By.CSS_SELECTOR, "tbody.record tr")
-            for row in rows:
-                cols = row.find_elements(By.TAG_NAME, "td")
-                if len(cols) >= 3 and cols[0].text.strip() == target_year:
-                    value = cols[2].text.replace(",", "")
-                    print(f"✅ 減価償却費取得成功: {value}")
-                    return float(value)
+                rows = driver.find_elements(By.CSS_SELECTOR, "tbody.record tr")
+                for row in rows:
+                    cols = row.find_elements(By.TAG_NAME, "td")
+                    if len(cols) >= 3 and cols[0].text.strip() == target_year:
+                        value = cols[2].text.replace(",", "")
+                        print(f"✅ 減価償却費取得成功: {value}")
+                        return float(value)
+            except Exception as e:
+                print(f"❌ テーブル読み込みエラー: {e}")
+
 
             print(f"⚠️ 指定年 {target_year} の減価償却費が見つかりませんでした。")
             return None
