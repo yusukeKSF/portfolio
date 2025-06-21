@@ -12,7 +12,7 @@
         main {
             margin: 20px auto;
             max-width: 800px;
-            height: 950px;
+            height: 900px;
             display: block;
             text-align: center;
             border: 10px solid rgb(177, 177, 177);
@@ -62,26 +62,31 @@
         }
         .clear-btn-container {
             width: 100%;
+            height: 200px;
             text-align: center;
         }
         a#clear-btn {
             display: inline-block;
             text-decoration: none;
             padding: 10px 20px;
-            margin-top: 30px;
+            margin-top: 20px;
             border: 1px solid #080808;
             border-radius: 4px;
             color: #080808;
             background-color: #e6e6e6;
         }
+        .caution-msg {
+            margin-top: 30px;
+            text-align: center;
+        }
         footer{
-            height: 50px;
-            margin-bottom: 0;
-            position: fixed;
+            display: block;
+            width: 100%;
+            bottom: 0;
         }
         footer p {
-            display: flex;
             height: 50px;
+            display: flex;
             justify-content: center;
             align-items: center;
             background-color: #e6e6e6;
